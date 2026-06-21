@@ -148,9 +148,9 @@ button {
 
 .app-layout {
   display: grid;
-  grid-template-columns: 252px minmax(560px, 1fr) 258px;
+  grid-template-columns: 252px minmax(500px, 1fr) 360px;
   gap: 18px;
-  width: min(100%, 1380px);
+  width: min(100%, 1480px);
   margin: 0 auto;
   padding: 18px 22px 28px;
 }
@@ -169,8 +169,8 @@ button {
 
 .guide-panel {
   max-height: calc(100vh - 100px);
-  overflow: auto;
-  scrollbar-gutter: stable;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .toolbar {
@@ -489,7 +489,7 @@ button {
 
 #workspace {
   display: block;
-  width: min(620px, calc(100vw - 640px));
+  width: min(620px, calc(100vw - 760px));
   min-width: 500px;
   height: auto;
   aspect-ratio: 1;
@@ -1357,57 +1357,77 @@ button {
   grid-template-columns: 252px minmax(560px, 1fr) 292px;
 }
 
+.workspace-head {
+  display: none;
+}
+
+.toolbar-history {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.toolbar-history .history-button {
+  min-height: 32px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  gap: 3px;
+}
+
+.toolbar-history .history-button .tool-icon {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+}
+
+.toolbar-history .history-button span {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.app-layout {
+  grid-template-columns: 252px minmax(500px, 1fr) 340px !important;
+  width: min(100%, 1460px) !important;
+}
+
+#workspace {
+  width: min(620px, calc(100vw - 740px)) !important;
+}
+
 .guide-panel {
-  padding: 10px;
-  box-sizing: border-box;
+  width: 280px !important;
+  padding: 14px !important;
+  box-sizing: border-box !important;
+  scrollbar-gutter: auto !important;
 }
 
 .guide-panel .guide-card {
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 14px 16px;
-}
-
-.guide-panel .active-guide h2 {
-  margin: 0 0 8px;
-  font-size: 1.05rem;
-  line-height: 1.2;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 16px 18px !important;
+  box-sizing: border-box !important;
 }
 
 .guide-panel .guide-card p,
 .guide-panel #guide-text,
 .guide-panel .guide-steps,
 .guide-panel .guide-steps li {
-  max-width: none;
+  max-width: none !important;
 }
 
 .guide-panel .guide-steps {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.42;
+  margin: 12px 0 0 !important;
+  padding-left: 18px !important;
+  padding-right: 0 !important;
 }
 
 .guide-panel .guide-steps li {
-  position: relative;
-  margin: 0;
-  padding: 0 0 0 16px;
+  padding-right: 0 !important;
 }
 
 .guide-panel .guide-steps li + li {
-  margin-top: 8px;
-}
-
-.guide-panel .guide-steps li::before {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 0.72em;
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: currentColor;
+  margin-top: 8px !important;
 }
