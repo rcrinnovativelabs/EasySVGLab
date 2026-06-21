@@ -411,10 +411,25 @@ button {
   align-content: start;
   min-width: 0;
   gap: 12px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: visible;
   padding-bottom: 12px;
 }
 
+.floating-point-actions {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: max-content;
+  max-width: none;
+  transform: translate(-50%, 0);
+}
+
+.floating-point-action {
+  flex: 0 0 auto;
+}
 
 .canvas-actions {
   display: flex;
@@ -512,7 +527,7 @@ button {
   background: var(--panel-soft);
 }
 
-.guide-card + .guide-card {
+.guide-card+.guide-card {
   margin-top: 10px;
 }
 
@@ -544,7 +559,7 @@ button {
   line-height: 1.42;
 }
 
-.guide-steps li + li {
+.guide-steps li+li {
   margin-top: 6px;
 }
 
@@ -557,8 +572,7 @@ button {
   line-height: 1.35;
 }
 
-.legend-row + 
-.active-guide h2 {
+.legend-row+.active-guide h2 {
   margin: 0 0 8px;
   font-size: 1.05rem;
   line-height: 1.2;
@@ -572,7 +586,7 @@ button {
   line-height: 1.42;
 }
 
-.guide-steps li + li {
+.guide-steps li+li {
   margin-top: 6px;
 }
 
@@ -985,7 +999,7 @@ button {
   opacity: 0.22;
 }
 
-.edge-target:hover + .edge-preview {
+.edge-target:hover+.edge-preview {
   opacity: 1;
 }
 
@@ -1203,7 +1217,7 @@ button {
     grid-column: 1 / -1;
   }
 
-  .guide-card + .guide-card {
+  .guide-card+.guide-card {
     margin-top: 0;
   }
 
@@ -1286,12 +1300,12 @@ button {
     display: block;
   }
 
-  .toolbar-section + .toolbar-section,
-  .primary-tool-section + .toolbar-section {
+  .toolbar-section+.toolbar-section,
+  .primary-tool-section+.toolbar-section {
     margin-top: 14px;
   }
 
-  .guide-card + .guide-card {
+  .guide-card+.guide-card {
     margin-top: 10px;
   }
 
@@ -1312,6 +1326,7 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -1428,6 +1443,6 @@ button {
   padding-right: 0 !important;
 }
 
-.guide-panel .guide-steps li + li {
+.guide-panel .guide-steps li+li {
   margin-top: 8px !important;
 }

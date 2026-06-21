@@ -108,6 +108,8 @@ function restoreSavedDrawing() {
   }
 
   drawingLayer.innerHTML = snapshot;
+  normalizeClosedPenStorage();
+  snapshot = drawingLayer.innerHTML;
   history = [snapshot];
   historyIndex = 0;
   return Boolean(snapshot);
@@ -2077,6 +2079,67 @@ function pointsToAttribute(points) {
   return points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
 }
 
+function removeDuplicateClosingPoint(points) {
+  const cleanPoints = points.map((point) => ({ x: point.x, y: point.y }));
+  if (cleanPoints.length > 1
+    && distance(cleanPoints[0], cleanPoints[cleanPoints.length - 1]) < 0.01) {
+    cleanPoints.pop();
+  }
+  return cleanPoints;
+}
+
+function createPenPath(points, closed = false) {
+  const storedPoints = closed ? removeDuplicateClosingPoint(points) : points;
+  if (storedPoints.length < 2) {
+    return null;
+  }
+
+  const path = createSvgElement(closed ? "polygon" : "polyline", {
+    points: pointsToAttribute(storedPoints)
+  });
+  path.dataset.kind = "pen";
+  if (closed) {
+    path.dataset.closed = "true";
+  }
+  applyDefaultStyle(path);
+  return path;
+}
+
+function replaceWithPenPathElement(shape, points, closed) {
+  const path = createPenPath(points, closed);
+  if (!path) {
+    return null;
+  }
+
+  ["fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"].forEach((name) => {
+    const value = shape.getAttribute(name);
+    if (value !== null) {
+      path.setAttribute(name, value);
+    }
+  });
+  path.classList.add("drawable");
+  drawingLayer.insertBefore(path, shape);
+  shape.remove();
+  return path;
+}
+
+function normalizeClosedPenStorage() {
+  [...drawingLayer.children].forEach((shape) => {
+    if (shape.dataset.kind !== "pen" || shape.dataset.closed !== "true") {
+      return;
+    }
+
+    const points = getElementPoints(shape);
+    const storedPoints = removeDuplicateClosingPoint(points);
+    const isAlreadyNormalized = shape.tagName.toLowerCase() === "polygon"
+      && storedPoints.length === points.length;
+
+    if (!isAlreadyNormalized) {
+      replaceWithPenPathElement(shape, storedPoints, true);
+    }
+  });
+}
+
 function getElementPoints(element) {
   return [...element.points].map((point) => ({ x: point.x, y: point.y }));
 }
@@ -2245,6 +2308,9 @@ function finishPenPath() {
     ? null
     : mergeConnectedPath(points, startSnap, endSnap, completedShape);
   let finalShape = mergedShape || completedShape;
+  if (wasClosed && finalShape?.dataset.kind === "pen") {
+    finalShape = replaceWithPenPath(finalShape, getElementPoints(finalShape), true);
+  }
   let convertedRectangle = false;
   const rectangleConnections = [
     { snap: endSnap, pointIndex: getElementPoints(finalShape).length - 1 },
@@ -3658,13 +3724,44 @@ function updateSeparatePointsButton() {
     pointActions.hidden = true;
     return;
   }
+
   const svgPoint = workspace.createSVGPoint();
   svgPoint.x = selectedPoint.x;
   svgPoint.y = selectedPoint.y;
   const screenPoint = svgPoint.matrixTransform(workspace.getScreenCTM());
   const frameBox = workspace.parentElement.getBoundingClientRect();
-  pointActions.style.left = `${screenPoint.x - frameBox.left}px`;
-  pointActions.style.top = `${screenPoint.y - frameBox.top + 14}px`;
+  const localX = screenPoint.x - frameBox.left;
+  const localY = screenPoint.y - frameBox.top;
+  const margin = 10;
+  const gap = 14;
+  const actionsWidth = pointActions.offsetWidth;
+  const actionsHeight = pointActions.offsetHeight;
+
+  let left = localX;
+  let top = localY + gap;
+
+  if (actionsWidth > 0) {
+    left = clamp(
+      left,
+      actionsWidth / 2 + margin,
+      frameBox.width - actionsWidth / 2 - margin
+    );
+  }
+
+  if (actionsHeight > 0 && top + actionsHeight > frameBox.height - margin) {
+    top = localY - actionsHeight - gap;
+  }
+
+  if (actionsHeight > 0) {
+    top = clamp(
+      top,
+      margin,
+      frameBox.height - actionsHeight - margin
+    );
+  }
+
+  pointActions.style.left = `${left}px`;
+  pointActions.style.top = `${top}px`;
 }
 
 function getDeletableSegments(shape) {
@@ -4077,6 +4174,16 @@ function propagateDraggedTopologyPoint(point) {
   });
 }
 
+function isDraggedLinkedSnap(snap) {
+  if (!snap || snap.type !== "vertex" || !dragState?.linkedTopologyVertices) {
+    return false;
+  }
+
+  return dragState.linkedTopologyVertices.some(({ shape, index }) =>
+    snap.shape === shape && snap.vertexIndex === index
+  );
+}
+
 function propagateShapeTopologyLinks(shape) {
   const sourcePoints = getTopologyPoints(shape);
   dragState?.shapeTopologyLinks?.forEach(({ sourceIndex, targets }) => {
@@ -4247,9 +4354,17 @@ function getEditablePathData(shape) {
   }
 
   if (kind === "pen") {
+    const points = getElementPoints(shape);
+    if (shape.dataset.closed === "true") {
+      const uniquePoints = removeDuplicateClosingPoint(points);
+      return {
+        points: [...uniquePoints, { ...uniquePoints[0] }],
+        closed: true
+      };
+    }
     return {
-      points: getElementPoints(shape),
-      closed: shape.dataset.closed === "true"
+      points,
+      closed: false
     };
   }
 
@@ -4257,16 +4372,7 @@ function getEditablePathData(shape) {
 }
 
 function replaceWithPenPath(shape, points, closed) {
-  const path = createOpenPath(points);
-  if (!path) {
-    return null;
-  }
-  if (closed) {
-    path.dataset.closed = "true";
-  }
-  drawingLayer.insertBefore(path, shape);
-  shape.remove();
-  return path;
+  return replaceWithPenPathElement(shape, points, closed);
 }
 
 function mergeClosedShapeIntoPen(
@@ -4404,14 +4510,14 @@ function deletePointFromShape(shape, pointIndex) {
   let newShape = shape;
 
   if (isPen) {
-    shape.setAttribute("points", pointsToAttribute(data.points));
     if (data.closed) {
-      shape.dataset.closed = "true";
+      newShape = replaceWithPenPath(shape, data.points, true);
     } else {
+      shape.setAttribute("points", pointsToAttribute(data.points));
       shape.removeAttribute("data-closed");
+      shape.removeAttribute("data-selection-frame");
     }
-    shape.removeAttribute("data-selection-frame");
-    remapDetachedTopologyAfterDelete(shape, normalizedIndex);
+    remapDetachedTopologyAfterDelete(newShape, normalizedIndex);
   } else {
     newShape = replaceWithPenPath(shape, data.points, data.closed);
   }
@@ -4499,16 +4605,7 @@ function updateFontOptionPreviews() {
 }
 
 function createOpenPath(points) {
-  if (points.length < 2) {
-    return null;
-  }
-
-  const path = createSvgElement("polyline", {
-    points: pointsToAttribute(points)
-  });
-  path.dataset.kind = "pen";
-  applyDefaultStyle(path);
-  return path;
+  return createPenPath(points, false);
 }
 
 function deleteEdge(shape, edgeIndex) {
@@ -4539,7 +4636,8 @@ function deleteEdge(shape, edgeIndex) {
   } else if (kind === "line") {
     resultingParts = [];
   } else if (kind === "pen" && shape.dataset.closed === "true") {
-    const points = getElementPoints(shape).slice(0, -1);
+    const data = getEditablePathData(shape);
+    const points = data.points.slice(0, -1);
     resultingParts = [[
       ...points.slice(edgeIndex + 1),
       ...points.slice(0, edgeIndex + 1)
@@ -5591,12 +5689,13 @@ function moveLineEnd(point) {
     x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
     y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
   };
-  const snap = findSnapPointIncludingSegments(pointerPoint, selectedShape, [{
+  const rawSnap = findSnapPointIncludingSegments(pointerPoint, selectedShape, [{
     point: fixedPoint,
     type: "same-shape-vertex",
     shape: selectedShape,
     vertexIndex: dragState.index === 0 ? 1 : 0
   }]);
+  const snap = isDraggedLinkedSnap(rawSnap) ? null : rawSnap;
   let endPoint = snap ? { ...snap.point } : pointerPoint;
   dragState.activeSnap = snap;
 
@@ -5622,12 +5721,13 @@ function moveArcPoint(point) {
   };
   const arcData = getArcData(selectedShape);
   const fixedArcPoint = dragState.index === 0 ? arcData.end : arcData.start;
-  const snap = findSnapPointIncludingSegments(pointerPoint, selectedShape, [{
+  const rawSnap = findSnapPointIncludingSegments(pointerPoint, selectedShape, [{
     point: fixedArcPoint,
     type: "same-shape-vertex",
     shape: selectedShape,
     vertexIndex: dragState.index === 0 ? 1 : 0
   }]);
+  const snap = isDraggedLinkedSnap(rawSnap) ? null : rawSnap;
   const nextPoint = snap ? { ...snap.point } : pointerPoint;
   dragState.activeSnap = snap;
   const arcStart = dragState.index === 0 ? nextPoint : start.start;
@@ -5827,12 +5927,13 @@ function movePolygonVertex(point) {
   const previousSegmentIndex = (
     dragState.index - 1 + points.length
   ) % points.length;
-  const snap = findSnapPointIncludingSegments(
+  const rawSnap = findSnapPointIncludingSegments(
     pointerPoint,
     selectedShape,
     sameShapeCandidates,
     [previousSegmentIndex, dragState.index]
   );
+  const snap = isDraggedLinkedSnap(rawSnap) ? null : rawSnap;
   points[dragState.index] = snap ? { ...snap.point } : pointerPoint;
   dragState.activeSnap = snap;
 
@@ -5856,13 +5957,10 @@ function movePenPoint(point) {
   };
   const lastIndex = points.length - 1;
   const canClose = points.length >= 3;
-  const isOpenEndpoint = selectedShape.dataset.closed !== "true"
+  const isClosedPen = selectedShape.dataset.closed === "true";
+  const isOpenEndpoint = !isClosedPen
     && (dragState.index === 0 || dragState.index === lastIndex);
   const oppositeIndex = dragState.index === 0 ? lastIndex : 0;
-  const linkedEndpointIndex = selectedShape.dataset.closed === "true"
-    && (dragState.index === 0 || dragState.index === lastIndex)
-    ? (dragState.index === 0 ? lastIndex : 0)
-    : null;
   const sameShapeCandidates = points
     .map((candidate, index) => ({
       point: candidate,
@@ -5873,8 +5971,7 @@ function movePenPoint(point) {
       vertexIndex: index
     }))
     .filter((candidate) => {
-      if (candidate.vertexIndex === dragState.index
-        || candidate.vertexIndex === linkedEndpointIndex) {
+      if (candidate.vertexIndex === dragState.index) {
         return false;
       }
       return canClose || candidate.vertexIndex !== oppositeIndex;
@@ -5883,22 +5980,18 @@ function movePenPoint(point) {
     dragState.index - 1,
     dragState.index
   ].filter((index) => index >= 0 && index < points.length - 1);
-  const snap = findSnapPointIncludingSegments(
-    pointerPoint,
-    selectedShape,
-    sameShapeCandidates,
-    adjacentSegments
-  );
+  const rawSnap = isClosedPen
+    ? null
+    : findSnapPointIncludingSegments(
+      pointerPoint,
+      selectedShape,
+      sameShapeCandidates,
+      adjacentSegments
+    );
+  const snap = isDraggedLinkedSnap(rawSnap) ? null : rawSnap;
   const movedPoint = snap ? { ...snap.point } : pointerPoint;
   dragState.activeSnap = snap;
-
-  if (selectedShape.dataset.closed === "true"
-    && (dragState.index === 0 || dragState.index === lastIndex)) {
-    points[0] = movedPoint;
-    points[lastIndex] = { ...movedPoint };
-  } else {
-    points[dragState.index] = movedPoint;
-  }
+  points[dragState.index] = movedPoint;
 
   if (getPointsExtent(points) >= MIN_SIZE) {
     selectedShape.setAttribute("points", pointsToAttribute(points));
@@ -6003,15 +6096,19 @@ function closeOpenPenPathIfSnapped() {
   const snapPoint = { ...points[oppositeIndex] };
   if (dragState.index === 0) {
     points[0] = snapPoint;
-    points[lastIndex] = { ...snapPoint };
   } else {
     points[lastIndex] = snapPoint;
-    points[0] = { ...snapPoint };
   }
 
-  selectedShape.setAttribute("points", pointsToAttribute(points));
-  selectedShape.dataset.closed = "true";
-  selectedPenPointIndex = dragState.index;
+  const closedShape = replaceWithPenPath(selectedShape, points, true);
+  if (!closedShape) {
+    return false;
+  }
+
+  selectedShape = closedShape;
+  selectedShapes = [closedShape];
+  selectedPenPointIndex = 0;
+  dragState.activeSnap = null;
   renderHandles();
   return true;
 }
@@ -6846,6 +6943,7 @@ saveForm.addEventListener("submit", confirmSaveSvg);
 cancelSaveButton.addEventListener("click", () => saveDialog.close());
 
 const restoredSavedDrawing = restoreSavedDrawing();
+normalizeClosedPenStorage();
 textValueInput.value = "Testo";
 updateFontOptionPreviews();
 setActiveTool("select");
