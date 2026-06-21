@@ -5,8 +5,9 @@ const MIN_SIZE = 15;
 const EDGE_MARGIN = 1; // Tiene anche lo spessore del tratto dentro il foglio.
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SNAP_SCREEN_DISTANCE = 9;
-const PENCIL_MIN_TOLERANCE = 0.65;
-const PENCIL_MAX_TOLERANCE = 1.6;
+const PENCIL_MIN_TOLERANCE = 0.25;
+const PENCIL_MAX_TOLERANCE = 0.75;
+const PENCIL_SAMPLE_DISTANCE = 0.8;
 const GROUP_SELECTION_PADDING = 10;
 
 const workspace = document.querySelector("#workspace");
@@ -963,11 +964,11 @@ function storeGroupSelectionFrame(shapes, frame) {
 const GUIDE_MESSAGES = {
   select: {
     title: "Seleziona",
-    text: "Usa questo strumento per scegliere una forma già disegnata.",
+    text: "Usa questo strumento per selezionare una forma già disegnata.",
     steps: [
       "Clicca una forma sul foglio.",
       "Trascina il punto centrale per spostarla.",
-      "Usa i punti sul bordo per cambiarla."
+      "Usa i punti sul bordo per modificarla."
     ]
   },
   rect: {
@@ -976,7 +977,7 @@ const GUIDE_MESSAGES = {
     steps: [
       "Clicca nel punto in cui vuoi inserirlo.",
       "Dopo averlo creato, trascina i punti agli angoli.",
-      "Puoi allargarlo, stringerlo o renderlo più alto."
+      "Puoi cambiare larghezza e altezza"
     ]
   },
   circle: {
@@ -984,7 +985,7 @@ const GUIDE_MESSAGES = {
     text: "Crea un cerchio.",
     steps: [
       "Clicca nel punto in cui vuoi inserirlo.",
-      "Trascina il punto sul bordo per ingrandirlo o rimpicciolirlo."
+      "Trascina il punto sulla circonferenza per ingrandirlo o rimpicciolirlo."
     ]
   },
   ellipse: {
@@ -1067,10 +1068,10 @@ const GUIDE_MESSAGES = {
     ]
   },
   "delete-edge": {
-    title: "Togli lato",
+    title: "Elimina lato",
     text: "Rimuove un lato da una forma composta da segmenti.",
     steps: [
-      "Clicca il lato da togliere.",
+      "Clicca il lato da eliminare.",
       "La forma si aprirà in quel punto."
     ]
   }
@@ -1126,7 +1127,7 @@ function getSelectedShapeGuide() {
       steps: [
         "Trascina un punto per cambiare il contorno.",
         "Usa Aggiungi punto per rendere il tracciato più dettagliato.",
-        "Usa Togli lato se vuoi aprire una parte della forma."
+        "Usa Elimina lato se vuoi aprire una parte della forma."
       ]
     };
   }
@@ -1138,7 +1139,7 @@ function getSelectedShapeGuide() {
       steps: [
         "Trascina un punto per cambiare la forma.",
         "Usa Aggiungi punto se vuoi creare un nuovo vertice.",
-        "Usa Togli lato per aprire il poligono."
+        "Usa Elimina lato per aprire il poligono."
       ]
     };
   }
@@ -1528,6 +1529,116 @@ function getGroupSelectionFrameFromBounds(shapes) {
     { x: box.x + box.width + padding, y: box.y + box.height + padding },
     { x: box.x - padding, y: box.y + box.height + padding }
   ];
+}
+
+function getGroupSelectionBoundaryPoints(shape) {
+  if (!shape || !drawingLayer.contains(shape)) {
+    return [];
+  }
+
+  if (shape.dataset.kind === "circle") {
+    const cx = Number(shape.getAttribute("cx"));
+    const cy = Number(shape.getAttribute("cy"));
+    const radius = Number(shape.getAttribute("r"));
+    return [
+      { x: cx - radius, y: cy },
+      { x: cx + radius, y: cy },
+      { x: cx, y: cy - radius },
+      { x: cx, y: cy + radius }
+    ];
+  }
+
+  if (shape.dataset.kind === "ellipse") {
+    return getEllipseCardinalPoints(shape);
+  }
+
+  if (shape.dataset.kind === "text") {
+    return getTextRotatedCorners(shape);
+  }
+
+  if (shape.dataset.kind === "arc") {
+    const data = getArcData(shape);
+    if (!data) {
+      return [];
+    }
+    return getDisplayedArcPoints(
+      data.start,
+      data.end,
+      data.through,
+      getArcStretch(shape),
+      getArcWidth(shape)
+    );
+  }
+
+  if (["polygon", "pen", "pencil"].includes(shape.dataset.kind)) {
+    return getElementPoints(shape);
+  }
+
+  return getShapeVertices(shape);
+}
+
+function getGroupSelectionFrameFromReference(shapes, referenceFrame) {
+  if (!isValidFrame(referenceFrame)) {
+    return getGroupSelectionFrameFromBounds(shapes);
+  }
+
+  const horizontalLength = distance(referenceFrame[0], referenceFrame[1]);
+  const verticalLength = distance(referenceFrame[0], referenceFrame[3]);
+  if (horizontalLength < 0.01 || verticalLength < 0.01) {
+    return getGroupSelectionFrameFromBounds(shapes);
+  }
+
+  const horizontal = {
+    x: (referenceFrame[1].x - referenceFrame[0].x) / horizontalLength,
+    y: (referenceFrame[1].y - referenceFrame[0].y) / horizontalLength
+  };
+  const vertical = {
+    x: (referenceFrame[3].x - referenceFrame[0].x) / verticalLength,
+    y: (referenceFrame[3].y - referenceFrame[0].y) / verticalLength
+  };
+  const origin = getFrameCenter(referenceFrame);
+  const points = shapes.flatMap(getGroupSelectionBoundaryPoints);
+
+  if (!points.length) {
+    return cloneFrame(referenceFrame);
+  }
+
+  const horizontalValues = points.map((point) =>
+    (point.x - origin.x) * horizontal.x
+    + (point.y - origin.y) * horizontal.y
+  );
+  const verticalValues = points.map((point) =>
+    (point.x - origin.x) * vertical.x
+    + (point.y - origin.y) * vertical.y
+  );
+  const padding = GROUP_SELECTION_PADDING;
+  const left = Math.min(...horizontalValues) - padding;
+  const right = Math.max(...horizontalValues) + padding;
+  const top = Math.min(...verticalValues) - padding;
+  const bottom = Math.max(...verticalValues) + padding;
+  const toCanvasPoint = (horizontalValue, verticalValue) => ({
+    x: origin.x + horizontal.x * horizontalValue + vertical.x * verticalValue,
+    y: origin.y + horizontal.y * horizontalValue + vertical.y * verticalValue
+  });
+
+  return [
+    toCanvasPoint(left, top),
+    toCanvasPoint(right, top),
+    toCanvasPoint(right, bottom),
+    toCanvasPoint(left, bottom)
+  ];
+}
+
+function updateGroupSelectionFrameFromCurrentGeometry() {
+  if (selectedShapes.length <= 1 || !groupSelectionFrame) {
+    return;
+  }
+
+  groupSelectionFrame = getGroupSelectionFrameFromReference(
+    selectedShapes,
+    groupSelectionFrame
+  );
+  storeGroupSelectionFrame(selectedShapes, groupSelectionFrame);
 }
 
 function boxesIntersect(first, second) {
@@ -2222,7 +2333,7 @@ function continuePencilPath(point) {
     return;
   }
 
-  if (distance(points[points.length - 1], point) >= 2) {
+  if (distance(points[points.length - 1], point) >= PENCIL_SAMPLE_DISTANCE) {
     points.push(point);
     pencilShape.setAttribute("points", pointsToAttribute(points));
   }
@@ -6481,6 +6592,11 @@ workspace.addEventListener("pointermove", (event) => {
       dragState.previousAngle = currentAngle;
     }
   }
+  if (dragState && selectedShapes.length > 1
+    && !["group-move", "group-scale", "group-rotate"].includes(dragState.type)) {
+    updateGroupSelectionFrameFromCurrentGeometry();
+  }
+
   if (dragState?.type !== "rotate") {
     renderHandles();
     if (dragState?.activeSnap) {
