@@ -3724,44 +3724,13 @@ function updateSeparatePointsButton() {
     pointActions.hidden = true;
     return;
   }
-
   const svgPoint = workspace.createSVGPoint();
   svgPoint.x = selectedPoint.x;
   svgPoint.y = selectedPoint.y;
   const screenPoint = svgPoint.matrixTransform(workspace.getScreenCTM());
   const frameBox = workspace.parentElement.getBoundingClientRect();
-  const localX = screenPoint.x - frameBox.left;
-  const localY = screenPoint.y - frameBox.top;
-  const margin = 10;
-  const gap = 14;
-  const actionsWidth = pointActions.offsetWidth;
-  const actionsHeight = pointActions.offsetHeight;
-
-  let left = localX;
-  let top = localY + gap;
-
-  if (actionsWidth > 0) {
-    left = clamp(
-      left,
-      actionsWidth / 2 + margin,
-      frameBox.width - actionsWidth / 2 - margin
-    );
-  }
-
-  if (actionsHeight > 0 && top + actionsHeight > frameBox.height - margin) {
-    top = localY - actionsHeight - gap;
-  }
-
-  if (actionsHeight > 0) {
-    top = clamp(
-      top,
-      margin,
-      frameBox.height - actionsHeight - margin
-    );
-  }
-
-  pointActions.style.left = `${left}px`;
-  pointActions.style.top = `${top}px`;
+  pointActions.style.left = `${screenPoint.x - frameBox.left}px`;
+  pointActions.style.top = `${screenPoint.y - frameBox.top + 14}px`;
 }
 
 function getDeletableSegments(shape) {
@@ -6323,7 +6292,7 @@ function updateSaveConfirmation() {
     : "";
 }
 
-function confirmSaveSvg(event) {
+async function confirmSaveSvg(event) {
   event.preventDefault();
   const name = normalizeFileName(saveFileNameInput.value);
   if (!name) {
@@ -6331,13 +6300,43 @@ function confirmSaveSvg(event) {
     return;
   }
 
-  const detail = {
-    name,
-    fileName: `${name}.svg`,
-    svg: createExportedSvgSource()
-  };
-  window.dispatchEvent(new CustomEvent("easy-svg-lab:save", { detail }));
-  saveDialog.close();
+  const previousButtonText = confirmSaveButton.textContent;
+  confirmSaveButton.disabled = true;
+  confirmSaveButton.textContent = "Salvataggio...";
+  saveNameError.textContent = "";
+
+  try {
+    const response = await fetch("/wp-json/rcr/v1/easysvglab/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        filename: `${name}.svg`,
+        svg: createExportedSvgSource()
+      })
+    });
+
+    let result = null;
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
+
+    if (!response.ok) {
+      const message = result?.message || "Non è stato possibile salvare il file sul sito.";
+      throw new Error(message);
+    }
+
+    saveDialog.close();
+    window.alert(`File salvato: ${result?.filename || `${name}.svg`}`);
+  } catch (error) {
+    saveNameError.textContent = error.message || "Errore durante il salvataggio.";
+    confirmSaveButton.disabled = false;
+  } finally {
+    confirmSaveButton.textContent = previousButtonText;
+  }
 }
 
 toolButtons.forEach((button) => {
