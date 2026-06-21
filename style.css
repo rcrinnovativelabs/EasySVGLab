@@ -1352,3 +1352,62 @@ button {
   font-size: 0.68rem;
   line-height: 1;
 }
+
+.app-layout {
+  grid-template-columns: 252px minmax(560px, 1fr) 292px;
+}
+
+.guide-panel {
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.guide-panel .guide-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.guide-panel .active-guide h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.guide-panel .guide-card p,
+.guide-panel #guide-text,
+.guide-panel .guide-steps,
+.guide-panel .guide-steps li {
+  max-width: none;
+}
+
+.guide-panel .guide-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.42;
+}
+
+.guide-panel .guide-steps li {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 16px;
+}
+
+.guide-panel .guide-steps li + li {
+  margin-top: 8px;
+}
+
+.guide-panel .guide-steps li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.72em;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+}
