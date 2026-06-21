@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="it">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Easy SVG Lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="app-header">
+    <div class="header-content">
+      <div class="brand-block">
+        <h1>Easy SVG Lab</h1>
+        <p>Un laboratorio semplice per disegnare con forme e punti</p>
+      </div>
+      <div class="header-actions" aria-label="Azioni file">
+        <button id="save-button" class="header-action save-action" type="button">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"></path>
+          </svg>
+          <span>Salva</span>
+        </button>
+        <button id="download-button" class="header-action download-action" type="button">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12m-4-4l4 4 4-4M5 20h14"></path>
+          </svg>
+          <span>Scarica</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-layout">
+    <aside class="toolbar" aria-label="Strumenti di disegno">
+      <div class="toolbar-history" aria-label="Cronologia modifiche">
+        <button id="undo-button" class="history-button" type="button" disabled>
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 7L4 12l5 5M5 12h8a6 6 0 016 6"></path>
+          </svg>
+          <span>Indietro</span>
+        </button>
+        <button id="redo-button" class="history-button" type="button" disabled>
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 7l5 5-5 5M19 12h-8a6 6 0 00-6 6"></path>
+          </svg>
+          <span>Avanti</span>
+        </button>
+      </div>
+
+      <section class="toolbar-section primary-tool-section" aria-label="Strumento base">
+        <button class="tool-button select-button active" type="button" data-tool="select" aria-pressed="true">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 3l10 9-5 .8 3 6-2.5 1.2-3-6-3.5 3z"></path>
+          </svg>
+          <span>Seleziona</span>
+        </button>
+      </section>
+
+      <section class="toolbar-section" aria-label="Forme semplici">
+        <h3>Forme semplici</h3>
+        <div class="tool-grid">
+          <button class="tool-button" type="button" data-tool="rect" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="6" width="18" height="12" rx="1"></rect>
+            </svg>
+            <span>Rettangolo</span>
+          </button>
+          <button class="tool-button" type="button" data-tool="circle" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5"></circle>
+            </svg>
+            <span>Cerchio</span>
+          </button>
+          <button class="tool-button" type="button" data-tool="ellipse" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <ellipse cx="12" cy="12" rx="9" ry="6"></ellipse>
+            </svg>
+            <span>Ovale</span>
+          </button>
+          <button class="tool-button polygon-button" type="button" data-tool="polygon" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l8.5 6.2-3.2 10H6.7l-3.2-10z"></path>
+            </svg>
+            <span>Poligono</span>
+          </button>
+        </div>
+        <label class="sides-control" for="polygon-sides">
+          <span>Lati del poligono</span>
+          <input id="polygon-sides" type="number" min="3" max="12" value="5">
+        </label>
+      </section>
+
+      <section class="toolbar-section" aria-label="Linee e disegno libero">
+        <h3>Linee e disegno</h3>
+        <div class="tool-grid">
+          <button class="tool-button" type="button" data-tool="line" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 19L20 5"></path>
+              <circle cx="4" cy="19" r="1.5"></circle>
+              <circle cx="20" cy="5" r="1.5"></circle>
+            </svg>
+            <span>Linea</span>
+          </button>
+          <button class="tool-button" type="button" data-tool="arc" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 17A10 10 0 0019 7"></path>
+              <circle cx="4" cy="17" r="1.4"></circle>
+              <circle cx="19" cy="7" r="1.4"></circle>
+            </svg>
+            <span>Arco</span>
+          </button>
+          <button class="tool-button" type="button" data-tool="pen" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 18l4-4 4 2 4-7 4-3"></path>
+              <circle cx="4" cy="18" r="1.5"></circle>
+              <circle cx="12" cy="16" r="1.5"></circle>
+              <circle cx="20" cy="6" r="1.5"></circle>
+            </svg>
+            <span>Penna</span>
+          </button>
+          <button class="tool-button" type="button" data-tool="pencil" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 17c3-7 5 4 8-3s5 2 8-5"></path>
+            </svg>
+            <span>Matita</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="toolbar-section" aria-label="Testo">
+        <h3>Testo</h3>
+        <div class="text-tool-group tool-with-options">
+          <button class="tool-button text-button" type="button" data-tool="text" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h14M12 5v14M8 19h8"></path>
+            </svg>
+            <span>Testo</span>
+          </button>
+          <label class="text-value-control" for="text-value">
+            <span>Scritta</span>
+            <input id="text-value" type="text" value="Testo" maxlength="60" autocomplete="off">
+          </label>
+          <label class="text-size-control" for="text-size">
+            <span>Grandezza</span>
+            <input id="text-size" type="number" min="8" max="120" value="32">
+          </label>
+          <label class="text-font-control" for="text-font">
+            <span>Stile</span>
+            <select id="text-font">
+              <option value="'Liberation Sans', Arial, sans-serif"
+                style="font-family:'Liberation Sans',Arial,sans-serif">Lineare</option>
+              <option value="'Fira Sans Compressed', 'Arial Narrow', sans-serif"
+                style="font-family:'Fira Sans Compressed','Arial Narrow',sans-serif">Compatto</option>
+              <option value="'Noto Serif', Georgia, serif" style="font-family:'Noto Serif',Georgia,serif">Classico
+              </option>
+              <option value="'Liberation Mono', 'Courier New', monospace"
+                style="font-family:'Liberation Mono','Courier New',monospace">Macchina</option>
+              <option value="'FantasqueSansM Nerd Font', cursive"
+                style="font-family:'FantasqueSansM Nerd Font',cursive">Giocoso</option>
+              <option value="'DejaVu Math TeX Gyre', serif" style="font-family:'DejaVu Math TeX Gyre',serif">Matematico
+              </option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="toolbar-section edit-section" aria-label="Modifica punti e cancellazione">
+        <h3>Modifica</h3>
+        <div class="tool-grid edit-grid">
+          <button class="tool-button" type="button" data-tool="add-point" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 17L10 10l11-5"></path>
+              <circle cx="10" cy="10" r="2"></circle>
+              <path d="M10 5v10M5 10h10"></path>
+            </svg>
+            <span>Aggiungi punto</span>
+          </button>
+          <button class="tool-button" type="button" data-tool="eraser" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 18l-3-3L13 6l5 5-7 7zM7 18h12"></path>
+            </svg>
+            <span>Gomma</span>
+          </button>
+          <button class="tool-button danger-tool" type="button" data-tool="delete-edge" aria-pressed="false">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 12h6m6 0h6"></path>
+              <circle cx="4" cy="12" r="1.5"></circle>
+              <circle cx="20" cy="12" r="1.5"></circle>
+              <path d="M10.5 9.5l3 5m0-5l-3 5"></path>
+            </svg>
+            <span>Elimina lato</span>
+          </button>
+          <button id="delete-button" class="action-button danger" type="button">
+            <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M9 7V4h6v3m-9 0l1 14h10l1-14M10 11v6m4-6v6"></path>
+            </svg>
+            <span>Elimina forma</span>
+          </button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="workspace-area" aria-label="Area di lavoro">
+      <div class="workspace-frame">
+        <svg id="workspace" xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"
+          aria-label="Foglio da disegno SVG">
+          <g id="drawing-layer"></g>
+          <g id="interaction-layer"></g>
+          <g id="handles-layer"></g>
+        </svg>
+        <div id="point-actions" class="floating-point-actions" hidden>
+          <button id="join-pencil-button" class="floating-point-action join-pencil-action" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8l5 4-5 4M20 8l-5 4 5 4M9 12h6"></path>
+            </svg>
+            <span>Unisci</span>
+          </button>
+          <button id="separate-points-button" class="floating-point-action" type="button">
+            <span>Separa punti</span>
+          </button>
+          <button id="delete-selected-point-button" class="floating-point-action delete-point-action" type="button">
+            <span>Elimina punto</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="guide-panel" aria-label="Guida rapida">
+      <section class="guide-card active-guide" aria-live="polite">
+        <p class="eyebrow">Aiuto</p>
+        <h2 id="guide-title">Seleziona</h2>
+        <p id="guide-text">Clicca una forma già disegnata per spostarla o modificarla.</p>
+        <ul id="guide-steps" class="guide-steps">
+          <li>Clicca una forma sul foglio.</li>
+          <li>Trascina il punto centrale per spostarla.</li>
+          <li>Usa i punti sul bordo per cambiarla.</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="save-dialog" class="save-dialog">
+    <form id="save-form" method="dialog">
+      <div class="save-dialog-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"></path>
+        </svg>
+      </div>
+      <h2>Salva il disegno</h2>
+      <p>Inserisci un nome per riconoscere il file nel sito.</p>
+      <label for="save-file-name">Nome del file</label>
+      <input id="save-file-name" type="text" maxlength="80" autocomplete="off" placeholder="Il mio disegno">
+      <p id="save-name-error" class="dialog-error" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button id="cancel-save-button" class="dialog-button" type="button">Annulla</button>
+        <button id="confirm-save-button" class="dialog-button save" type="submit" disabled>Salva</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
+```
