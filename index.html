@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Easy SVG Lab</title>
-  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 
 <body>
@@ -165,8 +165,12 @@
           </label>
         </div>
       </section>
+    </aside>
 
-      <section class="toolbar-section edit-section" aria-label="Modifica punti e cancellazione">
+    <section class="workspace-area" aria-label="Area di lavoro">
+
+
+      <section class="toolbar-section edit-section workspace-edit-section" aria-label="Modifica punti e cancellazione">
         <h3>Modifica</h3>
         <div class="tool-grid edit-grid">
           <button class="tool-button" type="button" data-tool="add-point" aria-pressed="false">
@@ -182,6 +186,9 @@
               <path d="M7 18l-3-3L13 6l5 5-7 7zM7 18h12"></path>
             </svg>
             <span>Gomma</span>
+          </button>
+          <button class="tool-button measure-button" type="button" data-tool="measure" aria-pressed="false">
+            <span>Misure</span>
           </button>
           <button class="tool-button danger-tool" type="button" data-tool="delete-edge" aria-pressed="false">
             <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -200,9 +207,6 @@
           </button>
         </div>
       </section>
-    </aside>
-
-    <section class="workspace-area" aria-label="Area di lavoro">
       <div class="workspace-frame">
         <svg id="workspace" xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"
           aria-label="Foglio da disegno SVG">
@@ -223,6 +227,13 @@
           <button id="delete-selected-point-button" class="floating-point-action delete-point-action" type="button">
             <span>Elimina punto</span>
           </button>
+        </div>
+        <div id="measurement-editor" class="measurement-editor" hidden>
+          <form id="measurement-editor-form" autocomplete="off">
+            <input id="measurement-value" type="text" inputmode="decimal" aria-label="Valore misura">
+            <span id="measurement-unit-label">mm</span>
+            <span id="measurement-editor-error" class="measurement-editor-error" aria-live="polite"></span>
+          </form>
         </div>
       </div>
     </section>
@@ -260,7 +271,7 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=9"></script>
 </body>
 
 </html>

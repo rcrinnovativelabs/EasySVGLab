@@ -148,9 +148,9 @@ button {
 
 .app-layout {
   display: grid;
-  grid-template-columns: 252px minmax(500px, 1fr) 360px;
+  grid-template-columns: 252px minmax(560px, 1fr) 258px;
   gap: 18px;
-  width: min(100%, 1480px);
+  width: min(100%, 1380px);
   margin: 0 auto;
   padding: 18px 22px 28px;
 }
@@ -171,6 +171,7 @@ button {
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: auto !important;
 }
 
 .toolbar {
@@ -411,24 +412,45 @@ button {
   align-content: start;
   min-width: 0;
   gap: 12px;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: auto;
   padding-bottom: 12px;
 }
 
-.floating-point-actions {
-  position: absolute;
-  z-index: 5;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-  width: max-content;
-  max-width: none;
-  transform: translate(-50%, 0);
+
+
+.workspace-edit-section {
+  width: min(100%, 680px);
+  padding: 10px 12px;
+  border: 1px solid rgb(203 213 225 / 88%);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: var(--shadow-soft);
 }
 
-.floating-point-action {
-  flex: 0 0 auto;
+.workspace-edit-section h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 830;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.workspace-edit-section .edit-grid {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+}
+
+.workspace-edit-section .tool-button,
+.workspace-edit-section .action-button {
+  min-height: 44px;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.workspace-edit-section .tool-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
 }
 
 .canvas-actions {
@@ -504,7 +526,7 @@ button {
 
 #workspace {
   display: block;
-  width: min(620px, calc(100vw - 760px));
+  width: min(620px, calc(100vw - 640px));
   min-width: 500px;
   height: auto;
   aspect-ratio: 1;
@@ -527,7 +549,7 @@ button {
   background: var(--panel-soft);
 }
 
-.guide-card+.guide-card {
+.guide-card + .guide-card {
   margin-top: 10px;
 }
 
@@ -559,7 +581,7 @@ button {
   line-height: 1.42;
 }
 
-.guide-steps li+li {
+.guide-steps li + li {
   margin-top: 6px;
 }
 
@@ -572,7 +594,8 @@ button {
   line-height: 1.35;
 }
 
-.legend-row+.active-guide h2 {
+.legend-row + 
+.active-guide h2 {
   margin: 0 0 8px;
   font-size: 1.05rem;
   line-height: 1.2;
@@ -586,7 +609,7 @@ button {
   line-height: 1.42;
 }
 
-.guide-steps li+li {
+.guide-steps li + li {
   margin-top: 6px;
 }
 
@@ -636,7 +659,8 @@ button {
 }
 
 #workspace[data-tool="delete-edge"],
-#workspace[data-tool="add-point"] {
+#workspace[data-tool="add-point"],
+#workspace[data-tool="measure"] {
   cursor: pointer;
 }
 
@@ -999,7 +1023,7 @@ button {
   opacity: 0.22;
 }
 
-.edge-target:hover+.edge-preview {
+.edge-target:hover + .edge-preview {
   opacity: 1;
 }
 
@@ -1217,7 +1241,7 @@ button {
     grid-column: 1 / -1;
   }
 
-  .guide-card+.guide-card {
+  .guide-card + .guide-card {
     margin-top: 0;
   }
 
@@ -1300,12 +1324,12 @@ button {
     display: block;
   }
 
-  .toolbar-section+.toolbar-section,
-  .primary-tool-section+.toolbar-section {
+  .toolbar-section + .toolbar-section,
+  .primary-tool-section + .toolbar-section {
     margin-top: 14px;
   }
 
-  .guide-card+.guide-card {
+  .guide-card + .guide-card {
     margin-top: 10px;
   }
 
@@ -1326,7 +1350,6 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -1368,81 +1391,186 @@ button {
   line-height: 1;
 }
 
-.app-layout {
-  grid-template-columns: 252px minmax(560px, 1fr) 292px;
-}
-
-.workspace-head {
-  display: none;
-}
-
-.toolbar-history {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.toolbar-history .history-button {
-  min-height: 32px;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  gap: 3px;
-}
-
-.toolbar-history .history-button .tool-icon {
-  width: 16px;
-  height: 16px;
-  flex-basis: 16px;
-}
-
-.toolbar-history .history-button span {
-  font-size: 0.68rem;
-  line-height: 1;
-}
-
-.app-layout {
-  grid-template-columns: 252px minmax(500px, 1fr) 340px !important;
-  width: min(100%, 1460px) !important;
-}
-
-#workspace {
-  width: min(620px, calc(100vw - 740px)) !important;
-}
-
 .guide-panel {
-  width: 280px !important;
-  padding: 14px !important;
-  box-sizing: border-box !important;
-  scrollbar-gutter: auto !important;
+  padding: 14px;
+  box-sizing: border-box;
 }
 
-.guide-panel .guide-card {
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 16px 18px !important;
-  box-sizing: border-box !important;
+.guide-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
 }
 
-.guide-panel .guide-card p,
-.guide-panel #guide-text,
-.guide-panel .guide-steps,
-.guide-panel .guide-steps li {
-  max-width: none !important;
+.active-guide {
+  padding: 16px 20px;
 }
 
-.guide-panel .guide-steps {
-  margin: 12px 0 0 !important;
-  padding-left: 18px !important;
-  padding-right: 0 !important;
+.guide-text,
+#guide-text {
+  max-width: none;
 }
 
-.guide-panel .guide-steps li {
-  padding-right: 0 !important;
+.guide-steps {
+  margin: 12px 0 0;
+  padding-left: 16px;
+  padding-right: 0;
+  max-width: none;
 }
 
-.guide-panel .guide-steps li+li {
-  margin-top: 8px !important;
+.guide-steps li {
+  margin: 0 0 8px;
+  padding-left: 2px;
+  padding-right: 0;
+  max-width: none;
+}
+
+
+.measure-button {
+  min-height: 52px;
+}
+
+
+.measurement-editor {
+  position: absolute;
+  z-index: 8;
+  width: max-content;
+  max-width: min(160px, calc(100% - 12px));
+  transform: none;
+}
+
+.measurement-editor form {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: max-content;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 1.4px solid #d59b1f;
+  border-radius: 8px;
+  background: #fff8db;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 18%);
+}
+
+.measurement-editor[data-kind="angle"] form {
+  border-color: #3786c8;
+  background: #edf7ff;
+}
+
+.measurement-editor input {
+  flex: 0 0 5.4ch;
+  width: 5.4ch;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  color: #1f2937;
+  background: transparent;
+  font: 800 0.78rem "Liberation Sans", Arial, sans-serif;
+  line-height: 1.1;
+  text-align: right;
+}
+
+.measurement-editor[data-kind="angle"] input {
+  flex-basis: 4.4ch;
+  width: 4.4ch;
+}
+
+.measurement-editor input::-webkit-outer-spin-button,
+.measurement-editor input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+#measurement-unit-label {
+  flex: 0 0 auto;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.measurement-editor-error {
+  display: none;
+  flex: 0 0 100%;
+  color: var(--danger-dark);
+  font-size: 0.64rem;
+  font-weight: 760;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.measurement-editor.has-error form {
+  flex-wrap: wrap;
+  width: 132px;
+}
+
+.measurement-editor.has-error .measurement-editor-error {
+  display: block;
+}
+
+.measurement-hit {
+  cursor: pointer;
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+
+.measurement-hit-length {
+  stroke-width: 16;
+  stroke-linecap: round;
+  pointer-events: stroke;
+}
+
+.measurement-hit-length:hover,
+.measurement-hit-length.active {
+  stroke: rgb(213 155 31 / 62%);
+}
+
+.measurement-hit-angle {
+  fill: rgb(55 134 200 / 38%);
+  stroke: white;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.measurement-hit-angle:hover,
+.measurement-hit-angle.active {
+  fill: rgb(55 134 200 / 78%);
+  stroke: #1d5f98;
+}
+
+.measurement-control {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.measurement-label-bg {
+  fill: #fff8db;
+  stroke: #d59b1f;
+  stroke-width: 1.2;
+  filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.16));
+}
+
+.measurement-angle .measurement-label-bg {
+  fill: #edf7ff;
+  stroke: #3786c8;
+}
+
+.measurement-info .measurement-label-bg {
+  fill: #f1f5f9;
+  stroke: #94a3b8;
+}
+
+.measurement-label-text {
+  fill: #1f2937;
+  font-family: "Liberation Sans", Arial, sans-serif;
+  font-weight: 700;
+  pointer-events: none;
+  user-select: none;
+}
+
+.measurement-control:hover .measurement-label-bg {
+  stroke-width: 2;
 }

@@ -9,6 +9,7 @@ const PENCIL_MIN_TOLERANCE = 0.25;
 const PENCIL_MAX_TOLERANCE = 0.75;
 const PENCIL_SAMPLE_DISTANCE = 0.8;
 const GROUP_SELECTION_PADDING = 10;
+const MEASURE_MM_PER_PX = 25.4 / 96;
 
 const workspace = document.querySelector("#workspace");
 const toolbar = document.querySelector(".toolbar");
@@ -35,6 +36,11 @@ const pointActions = document.querySelector("#point-actions");
 const guideTitle = document.querySelector("#guide-title");
 const guideText = document.querySelector("#guide-text");
 const guideSteps = document.querySelector("#guide-steps");
+const measurementEditor = document.querySelector("#measurement-editor");
+const measurementEditorForm = document.querySelector("#measurement-editor-form");
+const measurementValueInput = document.querySelector("#measurement-value");
+const measurementUnitLabel = document.querySelector("#measurement-unit-label");
+const measurementEditorError = document.querySelector("#measurement-editor-error");
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_KEY = "easy-svg-lab-drawing";
 const TAB_AUTOSAVE_PREFIX = "easy-svg-lab:";
@@ -68,6 +74,7 @@ let penEndSnap = null;
 let hoveredShape = null;
 let canvasBaseSize = 0;
 let canvasZoom = 1;
+let activeMeasurement = null;
 
 function updateHistoryButtons() {
   undoButton.disabled = historyIndex === 0;
@@ -1076,6 +1083,15 @@ const GUIDE_MESSAGES = {
       "Clicca il lato da eliminare.",
       "La forma si aprirà in quel punto."
     ]
+  },
+  measure: {
+    title: "Misure",
+    text: "Permette di selezionare lati e angoli e modificarli con valori numerici.",
+    steps: [
+      "Seleziona una forma composta da segmenti.",
+      "Passa sopra un lato o un vertice per evidenziarlo.",
+      "Clicca e modifica il valore nel riquadro."
+    ]
   }
 };
 
@@ -1233,6 +1249,10 @@ function setActiveTool(tool) {
   dragState = null;
   selectedPenPointIndex = null;
   hoveredShape = null;
+  if (tool !== "measure") {
+    activeMeasurement = null;
+    closeMeasurementEditor();
+  }
   updateSeparatePointsButton();
   updateGuidePanel();
 
@@ -1242,7 +1262,10 @@ function setActiveTool(tool) {
     button.setAttribute("aria-pressed", String(isActive));
   });
 
-  if (tool === "delete-edge") {
+  if (tool === "measure") {
+    interactionLayer.replaceChildren();
+    renderMeasurementControls();
+  } else if (tool === "delete-edge") {
     interactionLayer.replaceChildren();
     selectShape(null);
     renderEdgeDeleteTargets();
@@ -1384,7 +1407,9 @@ function selectShape(shape) {
   selectedPenPointIndex = null;
   updateSeparatePointsButton();
   updateGuidePanel();
-  if (activeTool === "delete-edge") {
+  if (activeTool === "measure") {
+    renderMeasurementControls();
+  } else if (activeTool === "delete-edge") {
     renderEdgeDeleteTargets();
   } else if (activeTool === "add-point") {
     renderAddPointTargets();
@@ -1443,7 +1468,11 @@ function selectShapes(shapes, focusedShape = null) {
   selectedPenPointIndex = null;
   updateSeparatePointsButton();
   updateGuidePanel();
-  renderHandles();
+  if (activeTool === "measure") {
+    renderMeasurementControls();
+  } else {
+    renderHandles();
+  }
 }
 
 function toggleShapeSelection(shape) {
@@ -1652,7 +1681,7 @@ function boxesIntersect(first, second) {
 
 function renderSelectionInteractionLayer() {
   interactionLayer.replaceChildren();
-  if (activeTool !== "select") {
+  if (activeTool !== "select" && activeTool !== "measure") {
     return;
   }
 
@@ -3286,6 +3315,10 @@ function rotateSelectedShape(angle, saveHistory = true, centerOverride = null) {
 }
 
 function renderHandles() {
+  if (activeTool === "measure") {
+    renderMeasurementControls();
+    return;
+  }
   renderSelectionInteractionLayer();
   handlesLayer.replaceChildren();
 
@@ -4407,6 +4440,529 @@ function mergeRectangleJoinedToPen(snap, handleType, draggedShape, draggedIndex)
     );
   }
   return null;
+}
+
+function getMeasurementPathData(shape) {
+  if (!shape || !drawingLayer.contains(shape)) {
+    return null;
+  }
+
+  const kind = shape.dataset.kind;
+
+  if (kind === "line") {
+    return {
+      kind,
+      closed: false,
+      points: [
+        {
+          x: Number(shape.getAttribute("x1")),
+          y: Number(shape.getAttribute("y1"))
+        },
+        {
+          x: Number(shape.getAttribute("x2")),
+          y: Number(shape.getAttribute("y2"))
+        }
+      ]
+    };
+  }
+
+  if (kind === "polygon") {
+    return {
+      kind,
+      closed: true,
+      points: removeDuplicateClosingPoint(getElementPoints(shape))
+    };
+  }
+
+  if (kind === "pen") {
+    const closed = shape.dataset.closed === "true";
+    const points = getElementPoints(shape);
+    return {
+      kind,
+      closed,
+      points: closed ? removeDuplicateClosingPoint(points) : points
+    };
+  }
+
+  return null;
+}
+
+function getMeasurementCenter(points) {
+  if (!points.length) {
+    return { x: WORKSPACE_SIZE / 2, y: WORKSPACE_SIZE / 2 };
+  }
+
+  return {
+    x: points.reduce((total, point) => total + point.x, 0) / points.length,
+    y: points.reduce((total, point) => total + point.y, 0) / points.length
+  };
+}
+
+function getMeasurementSegments(data) {
+  if (!data || data.points.length < 2) {
+    return [];
+  }
+
+  const segmentCount = data.closed ? data.points.length : data.points.length - 1;
+  return Array.from({ length: segmentCount }, (_, index) => ({
+    index,
+    start: data.points[index],
+    end: data.points[(index + 1) % data.points.length]
+  }));
+}
+
+function formatMeasurementNumber(value) {
+  const rounded = Math.round(value * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return text.replace(".", ",");
+}
+
+function getAngleBetweenPoints(previous, vertex, next) {
+  const firstAngle = Math.atan2(previous.y - vertex.y, previous.x - vertex.x);
+  const secondAngle = Math.atan2(next.y - vertex.y, next.x - vertex.x);
+  let difference = Math.abs(secondAngle - firstAngle);
+  while (difference > Math.PI * 2) {
+    difference -= Math.PI * 2;
+  }
+  if (difference > Math.PI) {
+    difference = Math.PI * 2 - difference;
+  }
+  return difference * 180 / Math.PI;
+}
+
+function getMeasurementAngleItems(data) {
+  if (!data || data.points.length < 3) {
+    return [];
+  }
+
+  if (!data.closed) {
+    return data.points.slice(1, -1).map((point, offset) => {
+      const index = offset + 1;
+      return {
+        index,
+        previous: data.points[index - 1],
+        vertex: point,
+        next: data.points[index + 1]
+      };
+    });
+  }
+
+  return data.points.map((point, index) => ({
+    index,
+    previous: data.points[(index - 1 + data.points.length) % data.points.length],
+    vertex: point,
+    next: data.points[(index + 1) % data.points.length]
+  }));
+}
+
+function convertLengthFromPx(lengthPx) {
+  return lengthPx * MEASURE_MM_PER_PX;
+}
+
+function convertLengthToPx(lengthMm) {
+  return lengthMm / MEASURE_MM_PER_PX;
+}
+
+function getMeasurementUnitLabel(kind) {
+  if (kind === "angle") {
+    return "°";
+  }
+  return "mm";
+}
+
+function createMeasurementLengthTarget(segment, isActive) {
+  return createSvgElement("line", {
+    x1: segment.start.x,
+    y1: segment.start.y,
+    x2: segment.end.x,
+    y2: segment.end.y,
+    class: `measurement-hit measurement-hit-length${isActive ? " active" : ""}`,
+    "data-measure-kind": "length",
+    "data-measure-index": segment.index
+  });
+}
+
+function getAngleOffsetPoint(item, center, offset) {
+  const a1 = Math.atan2(item.previous.y - item.vertex.y, item.previous.x - item.vertex.x);
+  const a2 = Math.atan2(item.next.y - item.vertex.y, item.next.x - item.vertex.x);
+  let x = Math.cos(a1) + Math.cos(a2);
+  let y = Math.sin(a1) + Math.sin(a2);
+
+  if (Math.hypot(x, y) < 0.01) {
+    x = item.vertex.x - center.x;
+    y = item.vertex.y - center.y;
+  }
+
+  if ((item.vertex.x - center.x) * x + (item.vertex.y - center.y) * y < 0) {
+    x = -x;
+    y = -y;
+  }
+
+  const length = Math.hypot(x, y) || 1;
+  return {
+    x: clamp(item.vertex.x + x / length * offset, 18, WORKSPACE_SIZE - 18),
+    y: clamp(item.vertex.y + y / length * offset, 18, WORKSPACE_SIZE - 18)
+  };
+}
+
+function createMeasurementAngleTarget(item, center, isActive) {
+  const point = getAngleOffsetPoint(item, center, 24 / canvasZoom);
+  return createSvgElement("circle", {
+    cx: point.x,
+    cy: point.y,
+    r: 6 / canvasZoom,
+    class: `measurement-hit measurement-hit-angle${isActive ? " active" : ""}`,
+    "data-measure-kind": "angle",
+    "data-measure-index": item.index
+  });
+}
+
+function getOffsetSideLabelPoint(segment, center) {
+  const midpoint = {
+    x: (segment.start.x + segment.end.x) / 2,
+    y: (segment.start.y + segment.end.y) / 2
+  };
+  const dx = segment.end.x - segment.start.x;
+  const dy = segment.end.y - segment.start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  let normal = { x: -dy / length, y: dx / length };
+  if ((midpoint.x - center.x) * normal.x + (midpoint.y - center.y) * normal.y < 0) {
+    normal = { x: -normal.x, y: -normal.y };
+  }
+  const offset = 28 / canvasZoom;
+  return {
+    x: clamp(midpoint.x + normal.x * offset, 24, WORKSPACE_SIZE - 24),
+    y: clamp(midpoint.y + normal.y * offset, 24, WORKSPACE_SIZE - 24)
+  };
+}
+
+function getOffsetAngleLabelPoint(item, center) {
+  return getAngleOffsetPoint(item, center, 46 / canvasZoom);
+}
+
+function closeMeasurementEditor() {
+  if (!measurementEditor) {
+    return;
+  }
+  measurementEditor.hidden = true;
+  measurementEditor.classList.remove("has-error");
+  if (measurementEditorError) {
+    measurementEditorError.textContent = "";
+  }
+}
+
+function showMeasurementError(message) {
+  if (!measurementEditor || !measurementEditorError) {
+    return;
+  }
+  measurementEditorError.textContent = message;
+  measurementEditor.classList.add("has-error");
+}
+
+function clearMeasurementError() {
+  if (!measurementEditor || !measurementEditorError) {
+    return;
+  }
+  measurementEditorError.textContent = "";
+  measurementEditor.classList.remove("has-error");
+  measurementValueInput?.setCustomValidity("");
+}
+
+function positionMeasurementEditor(point) {
+  if (!measurementEditor || !point) {
+    return;
+  }
+
+  const frame = workspace.parentElement;
+  const frameRect = frame.getBoundingClientRect();
+  const svgRect = workspace.getBoundingClientRect();
+  const editorWidth = measurementEditor.offsetWidth || 100;
+  const editorHeight = measurementEditor.offsetHeight || 34;
+  const x = svgRect.left - frameRect.left + point.x / WORKSPACE_SIZE * svgRect.width;
+  const y = svgRect.top - frameRect.top + point.y / WORKSPACE_SIZE * svgRect.height;
+  const left = clamp(x - editorWidth / 2, 6, Math.max(6, frameRect.width - editorWidth - 6));
+  const top = clamp(y - editorHeight / 2, 6, Math.max(6, frameRect.height - editorHeight - 6));
+
+  measurementEditor.style.left = `${left}px`;
+  measurementEditor.style.top = `${top}px`;
+}
+
+function getActiveMeasurementData(data) {
+  if (!activeMeasurement || !data) {
+    return null;
+  }
+
+  if (activeMeasurement.kind === "length") {
+    const segment = getMeasurementSegments(data).find((item) => item.index === activeMeasurement.index);
+    if (!segment) {
+      return null;
+    }
+    return {
+      kind: "length",
+      value: convertLengthFromPx(distance(segment.start, segment.end)),
+      point: getOffsetSideLabelPoint(segment, getMeasurementCenter(data.points))
+    };
+  }
+
+  if (activeMeasurement.kind === "angle") {
+    const item = getMeasurementAngleItems(data).find((angleItem) => angleItem.index === activeMeasurement.index);
+    if (!item) {
+      return null;
+    }
+    return {
+      kind: "angle",
+      value: getAngleBetweenPoints(item.previous, item.vertex, item.next),
+      point: getOffsetAngleLabelPoint(item, getMeasurementCenter(data.points))
+    };
+  }
+
+  return null;
+}
+
+function updateMeasurementEditor(data, shouldFocus = false) {
+  if (!measurementEditor || !measurementValueInput || !measurementUnitLabel) {
+    return;
+  }
+
+  const editorData = getActiveMeasurementData(data);
+  if (!editorData) {
+    closeMeasurementEditor();
+    return;
+  }
+
+  clearMeasurementError();
+  measurementEditor.dataset.kind = editorData.kind;
+  measurementUnitLabel.textContent = getMeasurementUnitLabel(editorData.kind);
+  measurementValueInput.value = formatMeasurementNumber(editorData.value);
+  measurementValueInput.min = editorData.kind === "angle" ? "1" : "0.3";
+  measurementValueInput.max = editorData.kind === "angle" ? "179" : "";
+  measurementEditor.hidden = false;
+  positionMeasurementEditor(editorData.point);
+
+  if (shouldFocus) {
+    requestAnimationFrame(() => {
+      measurementValueInput.focus();
+      measurementValueInput.select();
+    });
+  }
+}
+
+function renderMeasurementControls() {
+  renderSelectionInteractionLayer();
+  handlesLayer.replaceChildren();
+  pointActions.hidden = true;
+
+  if (!selectedShape || !drawingLayer.contains(selectedShape)) {
+    selectedShape = null;
+    selectedShapes = [];
+    activeMeasurement = null;
+    closeMeasurementEditor();
+    return;
+  }
+
+  const data = getMeasurementPathData(selectedShape);
+  if (!data) {
+    activeMeasurement = null;
+    closeMeasurementEditor();
+    return;
+  }
+
+  const center = getMeasurementCenter(data.points);
+
+  getMeasurementSegments(data).forEach((segment) => {
+    const isActive = activeMeasurement?.kind === "length" && activeMeasurement.index === segment.index;
+    handlesLayer.append(createMeasurementLengthTarget(segment, isActive));
+  });
+
+  getMeasurementAngleItems(data).forEach((item) => {
+    const isActive = activeMeasurement?.kind === "angle" && activeMeasurement.index === item.index;
+    handlesLayer.append(createMeasurementAngleTarget(item, center, isActive));
+  });
+
+  updateMeasurementEditor(data);
+}
+
+function parseMeasurementInput(value) {
+  return Number.parseFloat(String(value).trim().replace(",", "."));
+}
+
+function updateShapeFromMeasurement(shape, points, closed) {
+  const kind = shape.dataset.kind;
+  const cleanPoints = closed ? removeDuplicateClosingPoint(points) : points;
+
+  if (kind === "line") {
+    shape.setAttribute("x1", cleanPoints[0].x.toFixed(2));
+    shape.setAttribute("y1", cleanPoints[0].y.toFixed(2));
+    shape.setAttribute("x2", cleanPoints[1].x.toFixed(2));
+    shape.setAttribute("y2", cleanPoints[1].y.toFixed(2));
+  } else if (kind === "polygon" || kind === "pen") {
+    shape.setAttribute("points", pointsToAttribute(cleanPoints));
+    if (kind === "pen") {
+      if (closed) {
+        shape.dataset.closed = "true";
+      } else {
+        shape.removeAttribute("data-closed");
+      }
+    }
+  }
+
+  shape.removeAttribute("data-selection-frame");
+}
+
+function applyMeasurementLength(shape, edgeIndex, wantedLength) {
+  const data = getMeasurementPathData(shape);
+  const segment = getMeasurementSegments(data)[edgeIndex];
+  if (!data || !segment) {
+    return false;
+  }
+
+  if (!Number.isFinite(wantedLength) || wantedLength < 1) {
+    showMeasurementError("Lunghezza non valida.");
+    return false;
+  }
+
+  const dx = segment.end.x - segment.start.x;
+  const dy = segment.end.y - segment.start.y;
+  const current = Math.hypot(dx, dy);
+  if (current < 0.01) {
+    showMeasurementError("Lato troppo corto.");
+    return false;
+  }
+
+  const points = data.points.map((point) => ({ ...point }));
+  const endIndex = data.closed ? (edgeIndex + 1) % points.length : edgeIndex + 1;
+  points[endIndex] = {
+    x: segment.start.x + dx / current * wantedLength,
+    y: segment.start.y + dy / current * wantedLength
+  };
+
+  if (!pointsAreInsideWorkspace(points)) {
+    showMeasurementError("Fuori dal foglio.");
+    return false;
+  }
+
+  updateShapeFromMeasurement(shape, points, data.closed);
+  recordHistory();
+  selectShape(shape);
+  return true;
+}
+
+function getMeasurementAngleRotationIndexes(points, vertexIndex, closed) {
+  if (!closed) {
+    return points
+      .map((_, index) => index)
+      .filter((index) => index > vertexIndex);
+  }
+
+  const indexes = [];
+  const previousIndex = (vertexIndex - 1 + points.length) % points.length;
+  let currentIndex = (vertexIndex + 1) % points.length;
+  let guard = 0;
+
+  while (currentIndex !== previousIndex && guard < points.length) {
+    indexes.push(currentIndex);
+    currentIndex = (currentIndex + 1) % points.length;
+    guard += 1;
+  }
+
+  return indexes;
+}
+
+function normalizeRadians(angle) {
+  let normalized = angle;
+  while (normalized > Math.PI) {
+    normalized -= Math.PI * 2;
+  }
+  while (normalized < -Math.PI) {
+    normalized += Math.PI * 2;
+  }
+  return normalized;
+}
+
+function applyMeasurementAngle(shape, vertexIndex, wantedAngle) {
+  const data = getMeasurementPathData(shape);
+  const item = getMeasurementAngleItems(data).find((angleItem) => angleItem.index === vertexIndex);
+  if (!data || !item) {
+    return false;
+  }
+
+  if (!Number.isFinite(wantedAngle) || wantedAngle <= 0 || wantedAngle >= 180) {
+    showMeasurementError("Angolo tra 1° e 179°.");
+    return false;
+  }
+
+  const points = data.points.map((point) => ({ ...point }));
+  const nextIndex = data.closed ? (vertexIndex + 1) % points.length : vertexIndex + 1;
+  const nextPoint = points[nextIndex];
+  const vertex = points[vertexIndex];
+  const previous = data.closed
+    ? points[(vertexIndex - 1 + points.length) % points.length]
+    : points[vertexIndex - 1];
+
+  if (!previous || !nextPoint || distance(vertex, nextPoint) < 0.01) {
+    showMeasurementError("Angolo non modificabile.");
+    return false;
+  }
+
+  const baseAngle = Math.atan2(previous.y - vertex.y, previous.x - vertex.x);
+  const currentNextAngle = Math.atan2(nextPoint.y - vertex.y, nextPoint.x - vertex.x);
+  const direction = normalizeRadians(currentNextAngle - baseAngle);
+  const sign = direction < 0 ? -1 : 1;
+  const targetNextAngle = baseAngle + sign * wantedAngle * Math.PI / 180;
+  const rotationDelta = normalizeRadians(targetNextAngle - currentNextAngle) * 180 / Math.PI;
+  const indexesToRotate = getMeasurementAngleRotationIndexes(points, vertexIndex, data.closed);
+
+  if (!indexesToRotate.length) {
+    showMeasurementError("Angolo non modificabile.");
+    return false;
+  }
+
+  indexesToRotate.forEach((index) => {
+    points[index] = rotatePoint(points[index], vertex, rotationDelta);
+  });
+
+  if (!pointsAreInsideWorkspace(points)) {
+    showMeasurementError("Fuori dal foglio.");
+    return false;
+  }
+
+  updateShapeFromMeasurement(shape, points, data.closed);
+  recordHistory();
+  selectShape(shape);
+  return true;
+}
+
+function applyMeasurementEditorValue() {
+  if (!selectedShape || !activeMeasurement || !measurementValueInput) {
+    return;
+  }
+
+  clearMeasurementError();
+  const rawValue = parseMeasurementInput(measurementValueInput.value);
+  const ok = activeMeasurement.kind === "length"
+    ? applyMeasurementLength(selectedShape, activeMeasurement.index, convertLengthToPx(rawValue))
+    : applyMeasurementAngle(selectedShape, activeMeasurement.index, rawValue);
+
+  if (ok) {
+    const data = getMeasurementPathData(selectedShape);
+    updateMeasurementEditor(data);
+  }
+}
+
+function handleMeasurementControl(target) {
+  if (!selectedShape || !drawingLayer.contains(selectedShape)) {
+    return;
+  }
+
+  const kind = target.dataset.measureKind;
+  const index = Number(target.dataset.measureIndex);
+  if (!Number.isFinite(index) || !["length", "angle"].includes(kind)) {
+    return;
+  }
+
+  activeMeasurement = { kind, index };
+  renderMeasurementControls();
+  updateMeasurementEditor(getMeasurementPathData(selectedShape), true);
 }
 
 function addPointToShape(shape, edgeIndex, clickPoint) {
@@ -6339,6 +6895,23 @@ async function confirmSaveSvg(event) {
   }
 }
 
+measurementEditorForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  applyMeasurementEditorValue();
+});
+
+measurementValueInput?.addEventListener("change", () => {
+  applyMeasurementEditorValue();
+});
+
+measurementValueInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    activeMeasurement = null;
+    closeMeasurementEditor();
+    renderMeasurementControls();
+  }
+});
+
 toolButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTool(button.dataset.tool));
 });
@@ -6357,6 +6930,13 @@ workspace.addEventListener("pointerdown", (event) => {
     };
     workspace.setPointerCapture(event.pointerId);
     renderEraserPreview(point);
+    return;
+  }
+
+  const measurementTarget = event.target.closest("[data-measure-kind]");
+  if (activeTool === "measure" && measurementTarget) {
+    event.preventDefault();
+    handleMeasurementControl(measurementTarget);
     return;
   }
 
@@ -6478,6 +7058,20 @@ workspace.addEventListener("pointerdown", (event) => {
       }
     } else {
       startMarqueeSelection(point, event.pointerId);
+    }
+  } else if (activeTool === "measure") {
+    if (shape) {
+      if (shape !== selectedShape) {
+        activeMeasurement = null;
+        closeMeasurementEditor();
+      }
+      selectShape(shape);
+      renderMeasurementControls();
+    } else {
+      activeMeasurement = null;
+      closeMeasurementEditor();
+      selectShape(null);
+      setActiveTool("select");
     }
   } else if (activeTool === "rect") {
     createRectangle(point);
