@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Easy SVG Lab</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 
 <body>
@@ -168,10 +168,7 @@
     </aside>
 
     <section class="workspace-area" aria-label="Area di lavoro">
-
-
       <section class="toolbar-section edit-section workspace-edit-section" aria-label="Modifica punti e cancellazione">
-        <h3>Modifica</h3>
         <div class="tool-grid edit-grid">
           <button class="tool-button" type="button" data-tool="add-point" aria-pressed="false">
             <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -208,8 +205,9 @@
         </div>
       </section>
       <div class="workspace-frame">
-        <svg id="workspace" xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"
-          aria-label="Foglio da disegno SVG">
+        <svg id="workspace" xmlns="http://www.w3.org/2000/svg" width="780" height="780" viewBox="-140 -140 780 780"
+          aria-label="Area di lavoro estesa per disegno SVG">
+          <rect id="export-area" x="0" y="0" width="500" height="500" rx="0"></rect>
           <g id="drawing-layer"></g>
           <g id="interaction-layer"></g>
           <g id="handles-layer"></g>
@@ -271,7 +269,7 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=12"></script>
 </body>
 
 </html>

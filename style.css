@@ -65,7 +65,7 @@ button {
   position: sticky;
   top: 0;
   z-index: 40;
-  padding: 10px 22px;
+  padding: 7px 12px;
   color: white;
   background: linear-gradient(135deg, #172033 0%, #243b68 62%, #3867d6 100%);
   box-shadow: 0 10px 26px rgb(15 23 42 / 16%);
@@ -75,8 +75,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  width: min(100%, 1320px);
+  gap: 12px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -148,17 +148,17 @@ button {
 
 .app-layout {
   display: grid;
-  grid-template-columns: 252px minmax(560px, 1fr) 258px;
-  gap: 18px;
-  width: min(100%, 1380px);
-  margin: 0 auto;
-  padding: 18px 22px 28px;
+  grid-template-columns: 224px minmax(0, 1fr) 224px;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px 20px;
 }
 
 .toolbar,
 .guide-panel {
   position: sticky;
-  top: 82px;
+  top: 66px;
   align-self: start;
   border: 1px solid rgb(203 213 225 / 84%);
   border-radius: var(--radius-lg);
@@ -168,7 +168,7 @@ button {
 }
 
 .guide-panel {
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - 78px);
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: auto !important;
@@ -178,7 +178,7 @@ button {
   z-index: 20;
   max-height: none;
   overflow: visible;
-  padding: 12px;
+  padding: 10px;
 }
 
 .panel-title-block {
@@ -411,46 +411,53 @@ button {
   justify-items: center;
   align-content: start;
   min-width: 0;
-  gap: 12px;
-  overflow: auto;
-  padding-bottom: 12px;
+  gap: 8px;
+  overflow: visible;
+  padding-bottom: 10px;
 }
 
 
 
 .workspace-edit-section {
-  width: min(100%, 680px);
-  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 980px);
+  padding: 5px 7px;
   border: 1px solid rgb(203 213 225 / 88%);
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgb(255 255 255 / 94%);
   box-shadow: var(--shadow-soft);
 }
 
 .workspace-edit-section h3 {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 830;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .workspace-edit-section .edit-grid {
-  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  grid-template-columns: none;
+  gap: 6px;
 }
 
 .workspace-edit-section .tool-button,
 .workspace-edit-section .action-button {
-  min-height: 44px;
+  min-height: 32px;
+  width: auto;
+  min-width: 88px;
+  flex: 1 1 96px;
   flex-direction: row;
   gap: 6px;
+  padding: 5px 8px;
+  border-radius: 10px;
 }
 
 .workspace-edit-section .tool-icon {
-  flex: 0 0 18px;
-  width: 18px;
-  height: 18px;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
 }
 
 .canvas-actions {
@@ -517,29 +524,41 @@ button {
   width: max-content;
   max-width: none;
   margin-inline: auto;
-  padding: 14px;
+  padding: 8px;
   border: 1px solid rgb(203 213 225 / 88%);
-  border-radius: 22px;
+  border-radius: 20px;
   background: linear-gradient(180deg, #e7edf6 0%, #dbe4ef 100%);
   box-shadow: var(--shadow);
 }
 
 #workspace {
   display: block;
-  width: min(620px, calc(100vw - 640px));
-  min-width: 500px;
+  width: min(960px, calc(100vw - 490px));
+  min-width: 760px;
   height: auto;
   aspect-ratio: 1;
-  border: 1.5px solid #7b879a;
-  border-radius: 4px;
-  background: white;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 82%);
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle, rgb(148 163 184 / 28%) 1px, transparent 1px),
+    linear-gradient(180deg, #f1f5f9 0%, #e7edf5 100%);
+  background-size: 18px 18px, auto;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
   touch-action: none;
   user-select: none;
 }
 
+#export-area {
+  fill: white;
+  stroke: #475569;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 20px rgb(15 23 42 / 12%));
+}
+
 .guide-panel {
-  padding: 12px;
+  padding: 10px;
 }
 
 .guide-card {
@@ -1223,6 +1242,61 @@ button {
   font-weight: 750;
 }
 
+
+
+/* Layout rifinito: strumenti ai lati, area centrale più ampia. */
+.app-layout {
+  grid-template-columns: 224px minmax(0, 1fr) 224px;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px 20px;
+}
+
+.toolbar,
+.guide-panel {
+  top: 66px;
+}
+
+.toolbar {
+  padding: 10px;
+}
+
+.guide-panel {
+  padding: 10px;
+  max-height: calc(100vh - 78px);
+  scrollbar-gutter: auto !important;
+}
+
+.workspace-area {
+  gap: 8px;
+  overflow: visible;
+}
+
+.workspace-edit-section {
+  width: min(100%, 980px);
+  padding: 5px 7px;
+  border-radius: 14px;
+}
+
+.workspace-edit-section h3 {
+  display: none;
+}
+
+.workspace-frame {
+  padding: 8px;
+}
+
+#workspace {
+  width: min(960px, calc(100vw - 490px));
+  min-width: 760px;
+}
+
+@media (min-width: 1181px) {
+  .app-layout {
+    grid-template-columns: 224px minmax(760px, 1fr) 224px;
+  }
+}
+
 @media (max-width: 1180px) {
   .app-layout {
     grid-template-columns: 260px minmax(500px, 1fr);
@@ -1246,7 +1320,8 @@ button {
   }
 
   #workspace {
-    width: min(620px, calc(100vw - 340px));
+    width: min(760px, calc(100vw - 310px));
+    min-width: 560px;
   }
 }
 
@@ -1573,4 +1648,246 @@ button {
 
 .measurement-control:hover .measurement-label-bg {
   stroke-width: 2;
+}
+
+
+/* Rifinitura layout e feedback misure - v12 */
+.app-header {
+  padding: 14px 24px;
+}
+
+.header-content {
+  width: 100%;
+  max-width: none;
+}
+
+.brand-block h1 {
+  font-size: clamp(1.46rem, 1.9vw, 1.94rem);
+}
+
+.brand-block p {
+  font-size: 0.92rem;
+}
+
+.header-action {
+  min-height: 42px;
+  padding: 8px 13px;
+  border-radius: 13px;
+}
+
+.app-layout {
+  grid-template-columns: 252px minmax(0, 1fr) 252px;
+  gap: 18px;
+  width: 100%;
+  padding: 14px 18px 24px;
+}
+
+.toolbar,
+.guide-panel {
+  top: 96px;
+  margin-top: 28px;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 14px 34px rgb(15 23 42 / 10%);
+}
+
+.toolbar {
+  padding: 13px;
+}
+
+.guide-panel {
+  padding: 13px;
+  max-height: calc(100vh - 128px);
+  scrollbar-gutter: auto !important;
+}
+
+.workspace-area {
+  gap: 12px;
+  overflow: visible;
+  padding-top: 2px;
+}
+
+.workspace-edit-section {
+  width: min(100%, 1080px);
+  padding: 10px;
+  border: 1px solid rgb(203 213 225 / 86%);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 96%) 0%, rgb(248 250 252 / 96%) 100%);
+  box-shadow: 0 12px 28px rgb(15 23 42 / 9%);
+}
+
+.workspace-edit-section .edit-grid {
+  gap: 8px;
+}
+
+.workspace-edit-section .tool-button,
+.workspace-edit-section .action-button {
+  min-height: 42px;
+  flex: 1 1 126px;
+  padding: 8px 11px;
+  border-radius: 13px;
+  font-size: 0.78rem;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgb(226 232 240 / 90%);
+}
+
+.workspace-edit-section .tool-button:hover,
+.workspace-edit-section .action-button:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 1px #cbd5e1, 0 8px 18px rgb(15 23 42 / 8%);
+}
+
+.workspace-frame {
+  padding: 10px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #edf3fb 0%, #dce7f3 100%);
+  box-shadow: 0 22px 52px rgb(15 23 42 / 13%);
+}
+
+#workspace {
+  width: min(1120px, calc(100vw - 620px));
+  min-width: 780px;
+  border-radius: 16px;
+  border-color: #b8c4d4;
+  background:
+    radial-gradient(circle, rgb(148 163 184 / 24%) 1px, transparent 1px),
+    linear-gradient(180deg, #f6f8fb 0%, #e8eef6 100%);
+  background-size: 20px 20px, auto;
+}
+
+#export-area {
+  stroke: #334155;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 12px 24px rgb(15 23 42 / 14%));
+}
+
+.guide-card {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.measure-button {
+  color: #2852b6;
+  background: #eef4ff !important;
+  box-shadow: inset 0 0 0 1px rgb(56 103 214 / 16%) !important;
+}
+
+.measurement-control-target {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.measurement-length-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 26;
+  stroke-linecap: round;
+  pointer-events: stroke;
+}
+
+.measurement-length-feedback {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgb(15 23 42 / 18%));
+}
+
+.measurement-length-target:hover .measurement-length-feedback,
+.measurement-length-target.active .measurement-length-feedback {
+  stroke: #f59e0b;
+}
+
+.measurement-length-target.active .measurement-length-feedback {
+  stroke: #d97706;
+  stroke-width: 4.1;
+}
+
+.measurement-angle-leader {
+  fill: none;
+  stroke: rgb(37 99 235 / 26%);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.measurement-angle-hit-area {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+
+.measurement-angle-ring {
+  fill: #ffffff;
+  stroke: #60a5fa;
+  stroke-width: 1.8;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgb(15 23 42 / 18%));
+}
+
+.measurement-angle-dot {
+  fill: #2563eb;
+  pointer-events: none;
+}
+
+.measurement-angle-target:hover .measurement-angle-leader,
+.measurement-angle-target.active .measurement-angle-leader {
+  stroke: rgb(37 99 235 / 55%);
+}
+
+.measurement-angle-target:hover .measurement-angle-ring,
+.measurement-angle-target.active .measurement-angle-ring {
+  fill: #eff6ff;
+  stroke: #1d4ed8;
+  stroke-width: 2.4;
+}
+
+.measurement-angle-target:hover .measurement-angle-dot,
+.measurement-angle-target.active .measurement-angle-dot {
+  fill: #1e40af;
+}
+
+.measurement-editor form {
+  border-radius: 10px;
+  box-shadow: 0 10px 22px rgb(15 23 42 / 18%);
+}
+
+@media (min-width: 1560px) {
+  .app-layout {
+    grid-template-columns: 264px minmax(0, 1fr) 264px;
+    gap: 22px;
+    padding-inline: 22px;
+  }
+
+  #workspace {
+    width: min(1180px, calc(100vw - 680px));
+  }
+}
+
+@media (max-width: 1180px) {
+  .toolbar,
+  .guide-panel {
+    margin-top: 0;
+  }
+
+  #workspace {
+    width: min(800px, calc(100vw - 310px));
+    min-width: 560px;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-header {
+    padding: 14px 16px;
+  }
+
+  #workspace {
+    width: min(640px, calc(100vw - 46px));
+    min-width: 0;
+  }
 }

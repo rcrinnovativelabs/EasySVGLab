@@ -1,6 +1,10 @@
 "use strict";
 
 const WORKSPACE_SIZE = 500;
+const WORKSPACE_PADDING = 140;
+const EDIT_MIN = -WORKSPACE_PADDING;
+const EDIT_MAX = WORKSPACE_SIZE + WORKSPACE_PADDING;
+const EDIT_WORKSPACE_SIZE = WORKSPACE_SIZE + WORKSPACE_PADDING * 2;
 const MIN_SIZE = 15;
 const EDGE_MARGIN = 1; // Tiene anche lo spessore del tratto dentro il foglio.
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -894,8 +898,8 @@ function getSvgPoint(event) {
   const localPoint = getRawSvgPoint(event);
 
   return {
-    x: clamp(localPoint.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(localPoint.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(localPoint.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(localPoint.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
 }
 
@@ -1778,8 +1782,8 @@ function appendAndSelect(shape) {
 
 function createRectangle(point) {
   const size = 80;
-  const x = clamp(point.x - size / 2, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN - size);
-  const y = clamp(point.y - size / 2, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN - size);
+  const x = clamp(point.x - size / 2, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN - size);
+  const y = clamp(point.y - size / 2, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN - size);
   const rectangle = createSvgElement("rect", { x, y, width: size, height: size });
   rectangle.dataset.kind = "rect";
   appendAndSelect(rectangle);
@@ -1787,8 +1791,8 @@ function createRectangle(point) {
 
 function createCircle(point) {
   const radius = 40;
-  const cx = clamp(point.x, radius + EDGE_MARGIN, WORKSPACE_SIZE - radius - EDGE_MARGIN);
-  const cy = clamp(point.y, radius + EDGE_MARGIN, WORKSPACE_SIZE - radius - EDGE_MARGIN);
+  const cx = clamp(point.x, EDIT_MIN + radius + EDGE_MARGIN, EDIT_MAX - radius - EDGE_MARGIN);
+  const cy = clamp(point.y, EDIT_MIN + radius + EDGE_MARGIN, EDIT_MAX - radius - EDGE_MARGIN);
   const circle = createSvgElement("circle", { cx, cy, r: radius });
   circle.dataset.kind = "circle";
   appendAndSelect(circle);
@@ -1799,13 +1803,13 @@ function createEllipse(point) {
   const radiusY = 35;
   const cx = clamp(
     point.x,
-    radiusX + EDGE_MARGIN,
-    WORKSPACE_SIZE - radiusX - EDGE_MARGIN
+    EDIT_MIN + radiusX + EDGE_MARGIN,
+    EDIT_MAX - radiusX - EDGE_MARGIN
   );
   const cy = clamp(
     point.y,
-    radiusY + EDGE_MARGIN,
-    WORKSPACE_SIZE - radiusY - EDGE_MARGIN
+    EDIT_MIN + radiusY + EDGE_MARGIN,
+    EDIT_MAX - radiusY - EDGE_MARGIN
   );
   const ellipse = createSvgElement("ellipse", {
     cx,
@@ -1818,52 +1822,7 @@ function createEllipse(point) {
 }
 
 function keepTextInsideWorkspace(textElement) {
-  let box = textElement.getBBox();
-  let x = Number(textElement.getAttribute("x"));
-  let y = Number(textElement.getAttribute("y"));
-
-  if (box.width > WORKSPACE_SIZE - EDGE_MARGIN * 2
-    || box.height > WORKSPACE_SIZE - EDGE_MARGIN * 2) {
-    return false;
-  }
-
-  if (box.x < EDGE_MARGIN) {
-    x += EDGE_MARGIN - box.x;
-  } else if (box.x + box.width > WORKSPACE_SIZE - EDGE_MARGIN) {
-    x -= box.x + box.width - (WORKSPACE_SIZE - EDGE_MARGIN);
-  }
-
-  if (box.y < EDGE_MARGIN) {
-    y += EDGE_MARGIN - box.y;
-  } else if (box.y + box.height > WORKSPACE_SIZE - EDGE_MARGIN) {
-    y -= box.y + box.height - (WORKSPACE_SIZE - EDGE_MARGIN);
-  }
-
-  textElement.setAttribute("x", x);
-  textElement.setAttribute("y", y);
   applyTextRotation(textElement);
-  box = textElement.getBBox();
-  const corners = getTextRotatedCorners(textElement);
-  const minimumX = Math.min(...corners.map((point) => point.x));
-  const maximumX = Math.max(...corners.map((point) => point.x));
-  const minimumY = Math.min(...corners.map((point) => point.y));
-  const maximumY = Math.max(...corners.map((point) => point.y));
-  const offsetX = minimumX < EDGE_MARGIN
-    ? EDGE_MARGIN - minimumX
-    : maximumX > WORKSPACE_SIZE - EDGE_MARGIN
-      ? WORKSPACE_SIZE - EDGE_MARGIN - maximumX
-      : 0;
-  const offsetY = minimumY < EDGE_MARGIN
-    ? EDGE_MARGIN - minimumY
-    : maximumY > WORKSPACE_SIZE - EDGE_MARGIN
-      ? WORKSPACE_SIZE - EDGE_MARGIN - maximumY
-      : 0;
-
-  if (offsetX || offsetY) {
-    textElement.setAttribute("x", Number(textElement.getAttribute("x")) + offsetX);
-    textElement.setAttribute("y", Number(textElement.getAttribute("y")) + offsetY);
-    applyTextRotation(textElement);
-  }
   return pointsAreInsideWorkspace(getTextRotatedCorners(textElement));
 }
 
@@ -2178,8 +2137,8 @@ function createPolygon(point) {
   sidesInput.value = sides;
   const radius = 50;
   const center = {
-    x: clamp(point.x, radius + EDGE_MARGIN, WORKSPACE_SIZE - radius - EDGE_MARGIN),
-    y: clamp(point.y, radius + EDGE_MARGIN, WORKSPACE_SIZE - radius - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + radius + EDGE_MARGIN, EDIT_MAX - radius - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + radius + EDGE_MARGIN, EDIT_MAX - radius - EDGE_MARGIN)
   };
   const polygon = createSvgElement("polygon", {
     points: pointsToAttribute(getPolygonPoints(center, sides, radius))
@@ -3102,10 +3061,10 @@ function getFrameCenter(frame) {
 
 function pointsAreInsideWorkspace(points) {
   return points.every((point) => (
-    point.x >= EDGE_MARGIN
-    && point.x <= WORKSPACE_SIZE - EDGE_MARGIN
-    && point.y >= EDGE_MARGIN
-    && point.y <= WORKSPACE_SIZE - EDGE_MARGIN
+    point.x >= EDIT_MIN + EDGE_MARGIN
+    && point.x <= EDIT_MAX - EDGE_MARGIN
+    && point.y >= EDIT_MIN + EDGE_MARGIN
+    && point.y <= EDIT_MAX - EDGE_MARGIN
   ));
 }
 
@@ -3176,10 +3135,10 @@ function getEllipseBounds(ellipse, angle = getEllipseRotation(ellipse)) {
 
 function ellipseIsInsideWorkspace(ellipse, angle = getEllipseRotation(ellipse)) {
   const bounds = getEllipseBounds(ellipse, angle);
-  return bounds.x >= EDGE_MARGIN
-    && bounds.y >= EDGE_MARGIN
-    && bounds.x + bounds.width <= WORKSPACE_SIZE - EDGE_MARGIN
-    && bounds.y + bounds.height <= WORKSPACE_SIZE - EDGE_MARGIN;
+  return bounds.x >= EDIT_MIN + EDGE_MARGIN
+    && bounds.y >= EDIT_MIN + EDGE_MARGIN
+    && bounds.x + bounds.width <= EDIT_MAX - EDGE_MARGIN
+    && bounds.y + bounds.height <= EDIT_MAX - EDGE_MARGIN;
 }
 
 function applyTextRotation(textElement) {
@@ -3515,13 +3474,13 @@ function addRotationControl(
   const length = Math.hypot(directionX, directionY) || 1;
   const x = clamp(
     corner.x + directionX / length * spacing,
-    12,
-    WORKSPACE_SIZE - 12
+    EDIT_MIN + 12,
+    EDIT_MAX - 12
   );
   const y = clamp(
     corner.y + directionY / length * spacing,
-    12,
-    WORKSPACE_SIZE - 12
+    EDIT_MIN + 12,
+    EDIT_MAX - 12
   );
   handlesLayer.append(
     createSvgElement("circle", {
@@ -4571,15 +4530,30 @@ function getMeasurementUnitLabel(kind) {
 }
 
 function createMeasurementLengthTarget(segment, isActive) {
-  return createSvgElement("line", {
-    x1: segment.start.x,
-    y1: segment.start.y,
-    x2: segment.end.x,
-    y2: segment.end.y,
-    class: `measurement-hit measurement-hit-length${isActive ? " active" : ""}`,
+  const group = createSvgElement("g", {
+    class: `measurement-control-target measurement-length-target${isActive ? " active" : ""}`,
     "data-measure-kind": "length",
     "data-measure-index": segment.index
   });
+
+  group.append(
+    createSvgElement("line", {
+      x1: segment.start.x,
+      y1: segment.start.y,
+      x2: segment.end.x,
+      y2: segment.end.y,
+      class: "measurement-length-hit"
+    }),
+    createSvgElement("line", {
+      x1: segment.start.x,
+      y1: segment.start.y,
+      x2: segment.end.x,
+      y2: segment.end.y,
+      class: "measurement-length-feedback"
+    })
+  );
+
+  return group;
 }
 
 function getAngleOffsetPoint(item, center, offset) {
@@ -4600,21 +4574,50 @@ function getAngleOffsetPoint(item, center, offset) {
 
   const length = Math.hypot(x, y) || 1;
   return {
-    x: clamp(item.vertex.x + x / length * offset, 18, WORKSPACE_SIZE - 18),
-    y: clamp(item.vertex.y + y / length * offset, 18, WORKSPACE_SIZE - 18)
+    x: clamp(item.vertex.x + x / length * offset, EDIT_MIN + 18, EDIT_MAX - 18),
+    y: clamp(item.vertex.y + y / length * offset, EDIT_MIN + 18, EDIT_MAX - 18)
   };
 }
 
 function createMeasurementAngleTarget(item, center, isActive) {
-  const point = getAngleOffsetPoint(item, center, 24 / canvasZoom);
-  return createSvgElement("circle", {
-    cx: point.x,
-    cy: point.y,
-    r: 6 / canvasZoom,
-    class: `measurement-hit measurement-hit-angle${isActive ? " active" : ""}`,
+  const angle = getAngleBetweenPoints(item.previous, item.vertex, item.next);
+  const offset = (angle < 35 ? 44 : angle < 65 ? 38 : 32) / canvasZoom;
+  const point = getAngleOffsetPoint(item, center, offset);
+  const group = createSvgElement("g", {
+    class: `measurement-control-target measurement-angle-target${isActive ? " active" : ""}`,
     "data-measure-kind": "angle",
     "data-measure-index": item.index
   });
+
+  group.append(
+    createSvgElement("line", {
+      x1: item.vertex.x,
+      y1: item.vertex.y,
+      x2: point.x,
+      y2: point.y,
+      class: "measurement-angle-leader"
+    }),
+    createSvgElement("circle", {
+      cx: point.x,
+      cy: point.y,
+      r: 13 / canvasZoom,
+      class: "measurement-angle-hit-area"
+    }),
+    createSvgElement("circle", {
+      cx: point.x,
+      cy: point.y,
+      r: 8 / canvasZoom,
+      class: "measurement-angle-ring"
+    }),
+    createSvgElement("circle", {
+      cx: point.x,
+      cy: point.y,
+      r: 3.8 / canvasZoom,
+      class: "measurement-angle-dot"
+    })
+  );
+
+  return group;
 }
 
 function getOffsetSideLabelPoint(segment, center) {
@@ -4631,13 +4634,15 @@ function getOffsetSideLabelPoint(segment, center) {
   }
   const offset = 28 / canvasZoom;
   return {
-    x: clamp(midpoint.x + normal.x * offset, 24, WORKSPACE_SIZE - 24),
-    y: clamp(midpoint.y + normal.y * offset, 24, WORKSPACE_SIZE - 24)
+    x: clamp(midpoint.x + normal.x * offset, EDIT_MIN + 24, EDIT_MAX - 24),
+    y: clamp(midpoint.y + normal.y * offset, EDIT_MIN + 24, EDIT_MAX - 24)
   };
 }
 
 function getOffsetAngleLabelPoint(item, center) {
-  return getAngleOffsetPoint(item, center, 46 / canvasZoom);
+  const angle = getAngleBetweenPoints(item.previous, item.vertex, item.next);
+  const offset = angle < 35 ? 66 : angle < 65 ? 58 : 50;
+  return getAngleOffsetPoint(item, center, offset / canvasZoom);
 }
 
 function closeMeasurementEditor() {
@@ -4678,8 +4683,8 @@ function positionMeasurementEditor(point) {
   const svgRect = workspace.getBoundingClientRect();
   const editorWidth = measurementEditor.offsetWidth || 100;
   const editorHeight = measurementEditor.offsetHeight || 34;
-  const x = svgRect.left - frameRect.left + point.x / WORKSPACE_SIZE * svgRect.width;
-  const y = svgRect.top - frameRect.top + point.y / WORKSPACE_SIZE * svgRect.height;
+  const x = svgRect.left - frameRect.left + (point.x - EDIT_MIN) / EDIT_WORKSPACE_SIZE * svgRect.width;
+  const y = svgRect.top - frameRect.top + (point.y - EDIT_MIN) / EDIT_WORKSPACE_SIZE * svgRect.height;
   const left = clamp(x - editorWidth / 2, 6, Math.max(6, frameRect.width - editorWidth - 6));
   const top = clamp(y - editorHeight / 2, 6, Math.max(6, frameRect.height - editorHeight - 6));
 
@@ -5753,13 +5758,13 @@ function moveSelectedGroup(point) {
   const box = dragState.startBox;
   const dx = clamp(
     wantedDx,
-    EDGE_MARGIN - box.x,
-    WORKSPACE_SIZE - EDGE_MARGIN - (box.x + box.width)
+    EDIT_MIN + EDGE_MARGIN - box.x,
+    EDIT_MAX - EDGE_MARGIN - (box.x + box.width)
   );
   const dy = clamp(
     wantedDy,
-    EDGE_MARGIN - box.y,
-    WORKSPACE_SIZE - EDGE_MARGIN - (box.y + box.height)
+    EDIT_MIN + EDGE_MARGIN - box.y,
+    EDIT_MAX - EDGE_MARGIN - (box.y + box.height)
   );
   dragState.shapes.forEach(({ shape, snapshot, selectionFrame }) => {
     moveShapeFromSnapshot(shape, snapshot, selectionFrame, dx, dy);
@@ -5812,13 +5817,13 @@ function moveSelectedShape(point) {
     : startBox;
   const dx = clamp(
     wantedDx,
-    EDGE_MARGIN - movementBox.x,
-    WORKSPACE_SIZE - EDGE_MARGIN - (movementBox.x + movementBox.width)
+    EDIT_MIN + EDGE_MARGIN - movementBox.x,
+    EDIT_MAX - EDGE_MARGIN - (movementBox.x + movementBox.width)
   );
   const dy = clamp(
     wantedDy,
-    EDGE_MARGIN - movementBox.y,
-    WORKSPACE_SIZE - EDGE_MARGIN - (movementBox.y + movementBox.height)
+    EDIT_MIN + EDGE_MARGIN - movementBox.y,
+    EDIT_MAX - EDGE_MARGIN - (movementBox.y + movementBox.height)
   );
 
   if (selectedShape.dataset.kind === "rect") {
@@ -5879,17 +5884,17 @@ function resizeRectangleSide(point) {
   const bottom = start.y + start.height;
 
   if (dragState.index === 0) {
-    const y = clamp(point.y, EDGE_MARGIN, bottom - MIN_SIZE);
+    const y = clamp(point.y, EDIT_MIN + EDGE_MARGIN, bottom - MIN_SIZE);
     selectedShape.setAttribute("y", y);
     selectedShape.setAttribute("height", bottom - y);
   } else if (dragState.index === 1) {
-    const x = clamp(point.x, start.x + MIN_SIZE, WORKSPACE_SIZE - EDGE_MARGIN);
+    const x = clamp(point.x, start.x + MIN_SIZE, EDIT_MAX - EDGE_MARGIN);
     selectedShape.setAttribute("width", x - start.x);
   } else if (dragState.index === 2) {
-    const y = clamp(point.y, start.y + MIN_SIZE, WORKSPACE_SIZE - EDGE_MARGIN);
+    const y = clamp(point.y, start.y + MIN_SIZE, EDIT_MAX - EDGE_MARGIN);
     selectedShape.setAttribute("height", y - start.y);
   } else if (dragState.index === 3) {
-    const x = clamp(point.x, EDGE_MARGIN, right - MIN_SIZE);
+    const x = clamp(point.x, EDIT_MIN + EDGE_MARGIN, right - MIN_SIZE);
     selectedShape.setAttribute("x", x);
     selectedShape.setAttribute("width", right - x);
   }
@@ -6061,10 +6066,10 @@ function scaleSelectedShapeFromCorner(point) {
 function resizeCircle(point) {
   const { cx, cy } = dragState.startAttributes;
   const maximumRadius = Math.min(
-    cx - EDGE_MARGIN,
-    cy - EDGE_MARGIN,
-    WORKSPACE_SIZE - EDGE_MARGIN - cx,
-    WORKSPACE_SIZE - EDGE_MARGIN - cy
+    cx - (EDIT_MIN + EDGE_MARGIN),
+    cy - (EDIT_MIN + EDGE_MARGIN),
+    EDIT_MAX - EDGE_MARGIN - cx,
+    EDIT_MAX - EDGE_MARGIN - cy
   );
   const radius = clamp(distance({ x: cx, y: cy }, point), MIN_SIZE, maximumRadius);
   selectedShape.setAttribute("r", radius);
@@ -6211,8 +6216,8 @@ function moveLineEnd(point) {
     ? { x: start.x1, y: start.y1 }
     : { x: start.x2, y: start.y2 };
   const pointerPoint = {
-    x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
   const rawSnap = findSnapPointIncludingSegments(pointerPoint, selectedShape, [{
     point: fixedPoint,
@@ -6241,8 +6246,8 @@ function moveLineEnd(point) {
 function moveArcPoint(point) {
   const start = dragState.startAttributes;
   const pointerPoint = {
-    x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
   const arcData = getArcData(selectedShape);
   const fixedArcPoint = dragState.index === 0 ? arcData.end : arcData.start;
@@ -6284,8 +6289,8 @@ function moveArcPoint(point) {
 function moveArcBend(point) {
   const start = dragState.startAttributes;
   const displayedPointer = {
-    x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
   const pointer = getUnstretchedArcPoint(
     start.start,
@@ -6438,8 +6443,8 @@ function scaleArcFromCorner(point) {
 function movePolygonVertex(point) {
   const points = dragState.startAttributes.points.map((item) => ({ ...item }));
   const pointerPoint = {
-    x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
   const sameShapeCandidates = points
     .map((candidate, index) => ({
@@ -6477,8 +6482,8 @@ function movePolygonVertex(point) {
 function movePenPoint(point) {
   const points = dragState.startAttributes.points.map((item) => ({ ...item }));
   const pointerPoint = {
-    x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
   const lastIndex = points.length - 1;
   const canClose = points.length >= 3;
@@ -6528,8 +6533,8 @@ function movePenPoint(point) {
 function movePencilEnd(point) {
   const points = dragState.pencilExtensionPoints;
   const pointerPoint = {
-    x: clamp(point.x, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN),
-    y: clamp(point.y, EDGE_MARGIN, WORKSPACE_SIZE - EDGE_MARGIN)
+    x: clamp(point.x, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN),
+    y: clamp(point.y, EDIT_MIN + EDGE_MARGIN, EDIT_MAX - EDGE_MARGIN)
   };
   if (distance(points[points.length - 1], pointerPoint) >= 2) {
     points.push(pointerPoint);
@@ -6792,7 +6797,21 @@ function createExportedSvgSource() {
     xmlns: SVG_NS,
     width: WORKSPACE_SIZE,
     height: WORKSPACE_SIZE,
-    viewBox: `0 0 ${WORKSPACE_SIZE} ${WORKSPACE_SIZE}`
+    viewBox: `0 0 ${WORKSPACE_SIZE} ${WORKSPACE_SIZE}`,
+    overflow: "hidden"
+  });
+  const defs = createSvgElement("defs");
+  const clipPath = createSvgElement("clipPath", { id: "easy-svg-lab-export-area" });
+  clipPath.append(createSvgElement("rect", {
+    x: 0,
+    y: 0,
+    width: WORKSPACE_SIZE,
+    height: WORKSPACE_SIZE
+  }));
+  defs.append(clipPath);
+  exportedSvg.append(defs);
+  const exportedLayer = createSvgElement("g", {
+    "clip-path": "url(#easy-svg-lab-export-area)"
   });
 
   [...drawingLayer.children].forEach((shape) => {
@@ -6802,6 +6821,8 @@ function createExportedSvgSource() {
     clone.removeAttribute("data-closed");
     clone.removeAttribute("data-rotation");
     clone.removeAttribute("data-selection-frame");
+    clone.removeAttribute("data-group-selection-frame");
+    clone.removeAttribute("data-group-selection-frame-padding");
     clone.removeAttribute("data-rectangle");
     clone.removeAttribute("data-arc-start");
     clone.removeAttribute("data-arc-end");
@@ -6809,9 +6830,10 @@ function createExportedSvgSource() {
     clone.removeAttribute("data-arc-stretch");
     clone.removeAttribute("data-arc-width");
     clone.removeAttribute("data-detached-topology");
-    exportedSvg.append(clone);
+    exportedLayer.append(clone);
   });
 
+  exportedSvg.append(exportedLayer);
   return new XMLSerializer().serializeToString(exportedSvg);
 }
 
@@ -7165,10 +7187,10 @@ workspace.addEventListener("pointermove", (event) => {
 
   if (pencilShape) {
     const rawPoint = getRawSvgPoint(event);
-    const isInside = rawPoint.x >= EDGE_MARGIN
-      && rawPoint.x <= WORKSPACE_SIZE - EDGE_MARGIN
-      && rawPoint.y >= EDGE_MARGIN
-      && rawPoint.y <= WORKSPACE_SIZE - EDGE_MARGIN;
+    const isInside = rawPoint.x >= EDIT_MIN + EDGE_MARGIN
+      && rawPoint.x <= EDIT_MAX - EDGE_MARGIN
+      && rawPoint.y >= EDIT_MIN + EDGE_MARGIN
+      && rawPoint.y <= EDIT_MAX - EDGE_MARGIN;
     if (isInside) {
       const pointerPoint = { x: rawPoint.x, y: rawPoint.y };
       continuePencilPath(pointerPoint);
