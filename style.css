@@ -1891,3 +1891,38 @@ button {
     min-width: 0;
   }
 }
+
+/* Barra strumenti superiore fissa durante lo scorrimento - v13 */
+.workspace-edit-section {
+  position: sticky;
+  top: 96px;
+  z-index: 34;
+  backdrop-filter: blur(14px);
+}
+
+.workspace-edit-section::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px -9px;
+  height: 9px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(180deg, rgb(15 23 42 / 10%), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.workspace-edit-section:is(:hover, :focus-within)::after {
+  opacity: 1;
+}
+
+@media (max-width: 1180px) {
+  .workspace-edit-section {
+    top: 82px;
+  }
+}
+
+@media (max-width: 860px) {
+  .workspace-edit-section {
+    top: 76px;
+  }
+}
